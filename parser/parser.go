@@ -42,7 +42,7 @@ var (
 	client          = deposit.Flag("client", "Address of the Ethereum client. Infura and local node supported https://rinkeby.infura.io/v3/api_key or http://localhost:8545").Required().String()
 	contract        = deposit.Flag("contract", "Address of the Plasma MoreVP smart contract").Required().String()
 	depositAmount   = deposit.Flag("amount", "Amount to deposit in wei").Required().Uint64()
-	depositCurrency = deposit.Flag("currency", "Currency of the deposit. Example: ETH").Default(childchain.EthCurrency).String()
+	depositCurrency = deposit.Flag("currency", "ERC20 token address for the deposit, leave blank for ETH").Default(childchain.EthCurrency).String()
 
 
 	send             = kingpin.Command("send", "Create a transaction on the OmiseGO Plasma MoreVP network")
@@ -90,8 +90,9 @@ func ParseArgs() {
 		utxos, err := chch.GetUTXOsFromAddress(*ownerUTXOAddress)
 		if err != nil {
 			log.Error(err)
+		} else {
+			DisplayUTXOS(utxos)
 		}
-		DisplayUTXOS(utxos)
 	case getBalance.FullCommand():
 		//plamsa_cli get balance --address=0x944A81BeECac91802787fBCFB9767FCBf81db1f5 --watcher=http://watcher.path.net
 		chch, err := childchain.NewClient(*watcherURL, &http.Client{})
@@ -101,8 +102,9 @@ func ParseArgs() {
 		balance, err := chch.GetBalance(*ownerUTXOAddress)
 		if err != nil {
 			log.Error(err)
+		} else {
+			DisplayBalance(balance)
 		}
-		DisplayBalance(balance)
 	case status.FullCommand():
 		//plamsa_cli get status --watcher=http://watcher.path.net
 		chch, err := childchain.NewClient(*watcherURL, &http.Client{})
@@ -112,12 +114,13 @@ func ParseArgs() {
 		ws, err := chch.GetWatcherStatus()
 		if err != nil {
 			log.Error(err)
+		} else {
+			DisplayByzantineEvents(ws)
 		}
-		DisplayByzantineEvents(ws)
 	case deposit.FullCommand():
 		//plasma_cli deposit --privatekey=0x944A81BeECac91802787fBCFB9767FCBf81db1f5 --client=https://rinkeby.infura.io/v3/api_key --contract=0x457e2ec4ad356d3cb449e3bd4ba640d720c30377 --currency=ETH
-		d := plasma.PlasmaDeposit{PrivateKey: *privateKey, Client: *client, Contract: *contract, Amount: *depositAmount, Owner: util.DeriveAddress(*privateKey), Currency: *depositCurrency}
-		res, err := d.DepositEthToPlasma()
+		c := plasma.Deposit{PrivateKey: *privateKey, Client: *client, Contract: *contract, Amount: *depositAmount, Owner: util.DeriveAddress(*privateKey), Currency: *depositCurrency}
+		res, err := c.DepositEth()
 		if err != nil {
 			log.Error(err)
 		} else {
@@ -155,8 +158,9 @@ func ParseArgs() {
 		res, err := childchain.SubmitTransaction(ptx)
 		if err != nil {
 			log.Errorf("unexpected error : %v", err)
+		} else {
+			DisplaySubmitResponse(res)
 		}
-		DisplaySubmitResponse(res)
 
 	case transaction.FullCommand():
 		chch, err := childchain.NewClient(*watcherURL, &http.Client{})
@@ -177,7 +181,7 @@ func ParseArgs() {
 		//plasma_cli process --contract=0x5bb7f2492487556e380e0bf960510277cdafd680 --token 0x0 --privatekey=foo --client=https://rinkeby.infura.io/v3/api_key
 		p := plasma.ProcessExit{Contract: *processContract, PrivateKey: *processPrivateKey, Token: *processToken, Client: *processExitClient}
 		log.Info("Calling process exits in the Plasma contract")
-		plasma.ProcessExits(1, 1, p)
+		plasma.ProcessExits(1,1, p)
 	case createAccount.FullCommand():
 		//plasma_cli create account
 		log.Info("Generating Keypair")

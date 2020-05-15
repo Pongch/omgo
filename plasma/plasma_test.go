@@ -17,15 +17,22 @@ package plasma
 import (
 	"testing"
 	"github.com/omisego/plasma-cli/util"
+	"github.com/omisego/plasma-cli/childchain"
 	"fmt"
 	"os"
 	"strconv"
+	"time"
+	"context"
+	"net/http"
+	// "math/big"
 	"github.com/joho/godotenv"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type TestEnv struct {
 	Watcher, Privatekey, Publickey, EthClient, EthVault, ExitGame, PlasmaFramework string
-	UtxoPos, DepositAmount, ExitToProcess int
+	UtxoPos, DepositAmount, ExitToProcess, BlockTime, BlockConfirmation int
 
 }
 
@@ -53,10 +60,39 @@ func loadTestEnv() (*TestEnv, error){
 		PlasmaFramework: os.Getenv("PLASMA_FRAMEWORK_CONTRACT"),
 		UtxoPos: getEnvAsInt("UTXO_POS_FOR_EXIT", 1),
 		DepositAmount: getEnvAsInt("DEPOSIT_AMOUNT",1),
+		BlockTime: getEnvAsInt("BLOCK_TIME", 12),
+		BlockConfirmation: getEnvAsInt("BLOCK_CONFIRMATION", 7),
 		ExitToProcess: getEnvAsInt("EXIT_TO_PROCESS",1),
 	}
 	return &env, nil
 }
+
+// must start new ETH Client, then take in a signer to sign transactions
+// rc, err := rc.Client(//rootchain interface)
+// depositTx := rc.NewDeposit(// args)
+// res, err := rc.Sign(depositTx, util.SignWithRawKeys(//pkey))
+// txhash, err := rc.SubmitTransaction(depositTx) // the validation done before sending transaction
+
+
+func TestDepositEth(t *testing.T) {
+	env, err := loadTestEnv()
+	if err != nil {
+		t.Errorf("error loading test env in standard exit test: %v", err)
+	}
+
+	d := Deposit{PrivateKey: env.Privatekey, Client: env.EthClient, Contract: env.EthVault, Amount: uint64(env.DepositAmount), Owner: util.DeriveAddress(env.Privatekey), Currency: util.EthCurrency}
+	res,  err := d.DepositEth()
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Printf("deposit tx hash: %s \n", res)
+	sleep(t)
+	status := checkReceipt(res, t)
+	if status == false {
+		t.Error("transaction failed")
+	}
+}
+
 func TestGetStandardExitBond(t *testing.T) {
 	env, err := loadTestEnv()
 	if err != nil {
@@ -79,8 +115,21 @@ func TestStartStandardExit(t *testing.T){
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
 	}
-	// get exit UTXO info from watcher
-	exit, err := GetUTXOExitData(env.Watcher, env.UtxoPos)
+	// fetches all UTXOs available 
+	ch, err := childchain.NewClient(env.Watcher, &http.Client{})
+	if err != nil {
+		t.Errorf("failed to start client: %v", err)
+	}
+	utxos, err := ch.GetUTXOsFromAddress(env.Publickey)
+	if err != nil {
+		t.Errorf("error fetching utxos, %v", err)
+	}
+	// fetches the first UTXO we find
+	utxo, err := strconv.ParseInt(utxos.Data[0].UtxoPos.String(), 10, 0)
+	if err != nil {
+		t.Errorf("issue parseing utxo position %v", err)
+	}
+	exit, err := GetUTXOExitData(env.Watcher, int(utxo))
 	if err != nil {
 t.Errorf("unexpected error from getting UTXO exit data %v", err)
 	}
@@ -90,21 +139,13 @@ t.Errorf("unexpected error from getting UTXO exit data %v", err)
 t.Errorf("unexpected error from, starting exit: %v", err)
 	}
 	fmt.Printf("standard exit tx hash: %s \n", res)
-}
-
-func TestDepositEth(t *testing.T) {
-	env, err := loadTestEnv()
-	if err != nil {
-		t.Errorf("error loading test env in standard exit test: %v", err)
+	sleep(t)
+	status := checkReceipt(res, t)
+	if status == false {
+		t.Errorf("transaction failed")
 	}
-
-	d := PlasmaDeposit{PrivateKey: env.Privatekey, Client: env.EthClient, Contract: env.EthVault, Amount: uint64(env.DepositAmount), Owner: util.DeriveAddress(env.Privatekey), Currency: util.EthCurrency}
-	res,  err := d.DepositEthToPlasma()
-	if err != nil {
-		t.Error(err)
-	} 
-	fmt.Printf("deposit tx hash: %s \n", res)
 }
+
 
 func TestProcessExit(t *testing.T) {
 	env, err := loadTestEnv()
@@ -118,5 +159,41 @@ func TestProcessExit(t *testing.T) {
 		t.Error(err)
 	}
 	fmt.Printf("process exit tx hash: %s \n", res)
-
+	sleep(t)
+	status := checkReceipt(res, t)
+	if status == false {
+		t.Errorf("transaction failed")
+	}
 }
+
+// wait for 2 Ethereum block
+func sleep(t *testing.T) {
+	env, err := loadTestEnv()
+	if err != nil {
+		t.Errorf("error while sleep: %v", err)
+	}
+	time.Sleep(time.Duration(env.BlockTime * env.BlockConfirmation) * time.Second)
+}
+
+// get the result of transaction, return success or failure 
+func checkReceipt(receipt string, t *testing.T) bool {
+	env, err := loadTestEnv()
+	if err != nil {
+		t.Errorf("error loading env. %v ", err)
+	}
+	client, err := ethclient.Dial(env.EthClient) 
+	if err != nil {
+		t.Errorf("bad client: %v", err)
+	}
+	hash := common.HexToHash(receipt)
+	tx, err := client.TransactionReceipt(context.Background(), hash)
+	if err != nil {
+		t.Errorf("bad tx receipt: %v", err)
+	}
+	if tx.Status == 0 {
+		return false
+	} else {
+		return true
+	}
+}
+

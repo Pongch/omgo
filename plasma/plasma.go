@@ -35,7 +35,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type PlasmaDeposit struct {
+
+type Deposit struct {
 	PrivateKey string
 	Client     string
 	Contract   string
@@ -122,11 +123,6 @@ type watcherError struct {
 	} `json:"data"`
 }
 
-type inputDeposit struct {
-	Txindex uint `json:"txindex"`
-	Oindex  uint `json:"oindex"`
-	Blknum  uint `json:"blknum"`
-}
 
 // Start a standard exit from user provided UTXO & private key
 func (s *StandardExit) StartStandardExit(watcher string) {
@@ -175,8 +171,6 @@ func GetUTXOExitData(watcher string, utxoPosition int) (StandardExitUTXOData, er
 	jsonErr := json.Unmarshal([]byte(rstring), &response)
 	if jsonErr != nil {
 		return response, errors.New("No exit data found for UTXO provided")
-	} else {
-		log.Info(resp.Status)
 	}
 
 	return response, nil
@@ -239,13 +233,12 @@ func (s *StandardExitUTXOData) StartStandardExit(ethereumClient , contract , pri
 	seargs := rootchain.PaymentStandardExitRouterArgsStartStandardExitArgs{
 		UtxoPos: s.Data.UtxoPos,
 		RlpOutputTx: []byte(txBytesHex),
-		OutputGuardPreimage: []byte{},
 		OutputTxInclusionProof: []byte(proofBytesHex),
-	} 
+	}
 	tx, err := instance.StartStandardExit(t, seargs) 
 	if err != nil {
 		return "", err
-	} 
+	}
 	return tx.Hash().Hex(), nil 
 }
 
@@ -297,32 +290,32 @@ client, err := ethclient.Dial(rootchainclient)
 }
 
 // Deposit ETH into Plasma MoreVP ALD contract 
-func (d *PlasmaDeposit) DepositEthToPlasma() (string, error){
-client, err := ethclient.Dial(d.Client)
+func (d *Deposit) DepositEth() (string, error){
+	client, err := ethclient.Dial(d.Client)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(d.PrivateKey))
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		log.Fatal("Cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+		errors.New("Cannot assert type: publicKey is not of type *ecdsa.PublicKey")
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
-		log.Fatal(err)
+		return "", err 
 	}
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
@@ -332,10 +325,13 @@ client, err := ethclient.Dial(d.Client)
 	auth.GasPrice = gasPrice
 
 	address := common.HexToAddress(d.Contract)
-	rlpInputs := util.BuildRLPDeposit(util.RemoveLeadingZeroX(d.Owner), d.Currency, d.Amount, 1)
+	rlpInputs, err := util.BuildRLPDeposit(util.RemoveLeadingZeroX(d.Owner), d.Currency, d.Amount, 1)
+	if err != nil {
+		return "", err 
+	}
 	instance, err := rootchain.NewEthvault(address, client)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	t := &bind.TransactOpts{}
 	t.From = fromAddress
@@ -344,9 +340,8 @@ client, err := ethclient.Dial(d.Client)
 	tx, err := instance.Deposit(t, rlpInputs)
 	if err != nil {
 		return "", err
-	} else {
-		return	tx.Hash().Hex(), nil
 	}
+	return	tx.Hash().Hex(), nil
 
 }
 
