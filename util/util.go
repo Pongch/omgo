@@ -139,12 +139,12 @@ func convertStringToFloat64(value string) float64 {
 //The deposit transaction consists of empty inputs  and a single output UTXO
 //made up of a specified address, currency, value and transaction type 
 
-func BuildRLPDeposit(address, currency string, value, txtype uint64) ([]byte, error) {
+func BuildRLPDeposit(address, currency common.Address, value, txtype uint64) ([]byte, error) {
 	deposit := DepositTransaction{OutputType: uint(txtype), TxData:uint(0), MetaData: common.HexToHash(DefaultMetadata)}
-	cur := common.HexToAddress(currency)
+	cur := currency
 	// create a single ownership output 
 	ownership := DepositOutput{}
-	ownership.OutputData.OutputGuard = common.HexToAddress(address)
+	ownership.OutputData.OutputGuard = address
 	ownership.OutputData.Token = cur
 	ownership.OutputData.Amount = value
 	ownership.OutputType = txtype
@@ -172,14 +172,14 @@ func LogFormatter() {
 	log.SetFormatter(formatter)
 }
 
-// SignWithRawKeys takes private key as raw strings and return a function of type SignerFunc
-// NOTE: this is a default convenience function for signing, user should implement different
-// Signing function
-func SignWithRawKeys(keys ...string) SignerFunc {
-	return func(toSign []byte) ([][]byte, error) {
-		if len(keys) > MaxOutputs {
-			return nil, fmt.Errorf("error too many keys, maximum outputs are %v", MaxOutputs)
-		}
-		return util.SignHash(toSign, keys)
-	}
-}
+// // SignWithRawKeys takes private key as raw strings and return a function of type SignerFunc
+// // NOTE: this is a default convenience function for signing, user should implement different
+// // Signing function
+// func SignWithRawKeys(keys ...string) SignerFunc {
+// 	return func(toSign []byte) ([][]byte, error) {
+// 		if len(keys) > MaxOutputs {
+// 			return nil, fmt.Errorf("error too many keys, maximum outputs are %v", MaxOutputs)
+// 		}
+// 		return util.SignHash(toSign, keys)
+// 	}
+// }

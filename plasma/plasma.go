@@ -25,15 +25,45 @@ import (
 	"math/big"
 	"net/http"
 	"strings"
+	"strconv"
 
+	// "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/omisego/plasma-cli/rootchain"
 	"github.com/omisego/plasma-cli/util"
 	log "github.com/sirupsen/logrus"
 )
+
+type RootchainTransaction interface {
+	Submit() (*types.Transaction, error)
+	Build() (error)
+	Options(*bind.TransactOpts) error
+}
+type Client struct {
+	bind.ContractBackend
+}
+
+//TODO fix transaction builder signature 
+type TransactionBuilder  func(common.Address, common.Address, uint64, uint64) ([]byte, error)
+
+// TODO implement vault binder for ERC20
+type VaultBinder func(common.Address, bind.ContractBackend) (*rootchain.Ethvault, error) 
+
+type DepositTransaction struct {
+	*bind.TransactOpts
+	bind.ContractBackend
+	VaultAddress common.Address
+	Amount string
+	Owner common.Address
+	Currency common.Address
+	VaultBinder VaultBinder
+	Builder TransactionBuilder
+	RlpTransaction []byte
+}
 
 
 type Deposit struct {
@@ -325,9 +355,9 @@ func (d *Deposit) DepositEth() (string, error){
 	auth.GasPrice = gasPrice
 
 	address := common.HexToAddress(d.Contract)
-	rlpInputs, err := util.BuildRLPDeposit(util.RemoveLeadingZeroX(d.Owner), d.Currency, d.Amount, 1)
+	rlpInputs, err := util.BuildRLPDeposit(common.HexToAddress( d.Owner ), common.HexToAddress( d.Currency ), d.Amount, 1)
 	if err != nil {
-		return "", err 
+		return "", err
 	}
 	instance, err := rootchain.NewEthvault(address, client)
 	if err != nil {
@@ -500,4 +530,75 @@ func (c *ChallengeUTXOData) ChallengeInvalidExit(ethereumClient string, contract
 	} else {
 		log.Info("Challenge exit to Plasma MoreVP sent. Transaction: ", tx.Hash().Hex())
 	}
+}
+
+// initialize new root chain client 
+func NewClient(ethclient bind.ContractBackend) *Client{
+	return &Client{ethclient}
+}
+
+// create a new deposit 
+func (c *Client) NewDeposit(vaultAddress, owner, currency common.Address, amount string) *DepositTransaction{
+	return &DepositTransaction{
+		ContractBackend: c.ContractBackend,
+		VaultAddress: vaultAddress,
+		VaultBinder: rootchain.NewEthvault,
+		Amount: amount,
+		Owner: owner,
+		Builder: util.BuildRLPDeposit,
+		Currency: currency,
+	}
+}
+
+// func (d *DepositTransaction) Build()
+
+// set Ethereum transaction options, ensure fields are valid 
+func (d *DepositTransaction) Options(t *bind.TransactOpts) error {
+	//TODO: add validations
+	d.TransactOpts = t
+	return nil
+}
+
+// build deposit transaction 
+func (d *DepositTransaction) Build() error {
+	amount, err := strconv.ParseUint(d.Amount, 10, 64)
+	if err != nil {
+		return err
+	}
+	rlpencoded, err := d.Builder(
+		d.Owner,
+		d.Currency,
+		amount,
+		1,
+	)
+	if err != nil {
+		return err
+	}
+	d.RlpTransaction = rlpencoded
+	return nil
+}
+
+// TODO: return something else 
+func (d *DepositTransaction) Submit() (*types.Transaction, error) {
+	instance, err := d.VaultBinder(d.VaultAddress, d.ContractBackend)
+	if err != nil {
+		return nil, err
+	}
+	res, err := instance.Deposit(d.TransactOpts, d.RlpTransaction)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func Options(rtx  RootchainTransaction, t *bind.TransactOpts) error {
+	return rtx.Options(t)
+}
+
+func Submit(rtx RootchainTransaction) ( *types.Transaction, error ) {
+	return rtx.Submit()
+}
+
+func Build(rtx RootchainTransaction) error {
+	return rtx.Build()
 }

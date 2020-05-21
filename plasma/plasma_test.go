@@ -18,16 +18,19 @@ import (
 	"testing"
 	"github.com/omisego/plasma-cli/util"
 	"github.com/omisego/plasma-cli/childchain"
+	// "github.com/omisego/plasma-cli/rootchain"
 	"fmt"
 	"os"
 	"strconv"
 	"time"
 	"context"
 	"net/http"
-	// "math/big"
+	"math/big"
 	"github.com/joho/godotenv"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type TestEnv struct {
@@ -68,29 +71,64 @@ func loadTestEnv() (*TestEnv, error){
 }
 
 // must start new ETH Client, then take in a signer to sign transactions
-// rc, err := rc.Client(//rootchain interface)
-// depositTx := rc.NewDeposit(// args)
-// res, err := rc.Sign(depositTx, util.SignWithRawKeys(//pkey))
-// txhash, err := rc.SubmitTransaction(depositTx) // the validation done before sending transaction
-
-
-func TestDepositEth(t *testing.T) {
+// TODO wrap all of the depositTx inside a rootchain wrapper interface function 
+func TestDepositEthNew(t *testing.T) {
 	env, err := loadTestEnv()
 	if err != nil {
-		t.Errorf("error loading test env in standard exit test: %v", err)
+		t.Errorf("error loading test for deposit =: %v", err)
 	}
-
-	d := Deposit{PrivateKey: env.Privatekey, Client: env.EthClient, Contract: env.EthVault, Amount: uint64(env.DepositAmount), Owner: util.DeriveAddress(env.Privatekey), Currency: util.EthCurrency}
-	res,  err := d.DepositEth()
+	client, err := ethclient.Dial(env.EthClient)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("error initializing Ethereum client for deposit =: %v", err)
 	}
-	fmt.Printf("deposit tx hash: %s \n", res)
+	rc := NewClient(client)
+
+	depositTx := rc.NewDeposit(common.HexToAddress( env.EthVault ), common.HexToAddress(util.DeriveAddress(env.Privatekey)), common.HexToAddress(util.EthCurrency), strconv.Itoa(env.DepositAmount))
+	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.Privatekey))
+	if err != nil {
+		t.Errorf("bad privatekey: %v", err)
+	}
+	gasPrice, _ := client.SuggestGasPrice(context.Background())
+	txopts := bind.NewKeyedTransactor(privateKey)
+	txopts.From = common.HexToAddress(util.DeriveAddress(env.Privatekey))
+	txopts.GasLimit = 2000000
+	txopts.Value = big.NewInt(int64(env.DepositAmount))
+	txopts.GasPrice = gasPrice
+	if err := Options(depositTx, txopts); err != nil {
+		t.Errorf("transaction options invalid, %v", err)
+	}
+	if err := Build(depositTx); err != nil {
+		t.Errorf("deposit build error, %v", err)
+	}
+	tx, err := Submit(depositTx)
+	if err != nil {t.Errorf("error submiting transaction for deposit =: %v", err)}
+
+	fmt.Printf("%v", tx.Hash().Hex())
 	sleep(t)
-	status := checkReceipt(res, t)
+	status := checkReceipt(tx.Hash().Hex(), t)
 	if status == false {
 		t.Error("transaction failed")
 	}
+
+}
+
+func TestDepositEth(t *testing.T) {
+// 	env, err := loadTestEnv()
+// 	if err != nil {
+// 		t.Errorf("error loading test env in deposit test: %v", err)
+// 	}
+
+// 	d := Deposit{PrivateKey: env.Privatekey, Client: env.EthClient, Contract: env.EthVault, Amount: uint64(env.DepositAmount), Owner: util.DeriveAddress(env.Privatekey), Currency: util.EthCurrency}
+// 	res,  err := d.DepositEth()
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
+// 	fmt.Printf("deposit tx hash: %s \n", res)
+// 	sleep(t)
+// 	status := checkReceipt(res, t)
+// 	if status == false {
+// 		t.Error("transaction failed")
+// 	}
 }
 
 func TestGetStandardExitBond(t *testing.T) {
