@@ -136,11 +136,15 @@ func TestGetStandardExitBond(t *testing.T) {
 	if err != nil {
 		t.Errorf("error loading test env in get exit bond test: %v", err)
 	}
-	res, err := GetStandardExitBond(env.EthClient, env.ExitGame, env.Privatekey)
+	client, err := ethclient.Dial(env.EthClient)
+	rc := NewClient(client)
+	ste := rc.NewStandardExit(common.HexToAddress(env.ExitGame))
+	c := &bind.CallOpts{}
+	res, err := ste.GetStandardExitBond(c)
 	if err != nil {
-		t.Errorf("unexpected error %v", err)
+		t.Errorf("could not get exit bond: %v", err)
 	}
-	fmt.Printf("exit bond value: %v", res)
+	fmt.Printf("exit bond: %v \n", res)
 }
 
 func TestStartStandardExit(t *testing.T){
@@ -149,11 +153,23 @@ func TestStartStandardExit(t *testing.T){
 		t.Errorf("error loading test env in standard exit test: %v", err)
 	}
 	// get standard exit bond
-	bond, err := GetStandardExitBond(env.EthClient, env.ExitGame, env.Privatekey)
+	client, err := ethclient.Dial(env.EthClient)
+	rc := NewClient(client)
+	ste := rc.NewStandardExit(common.HexToAddress(env.ExitGame))
+	c := &bind.CallOpts{}
+	bondsize, err := ste.GetStandardExitBond(c)
 	if err != nil {
-		t.Errorf("unexpected error %v", err)
+		t.Errorf("could not get exit bond: %v", err)
 	}
-	// fetches all UTXOs available 
+	gasPrice, _ := client.SuggestGasPrice(context.Background())
+	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.Privatekey))
+	txopts := bind.NewKeyedTransactor(privateKey)
+	txopts.From = common.HexToAddress(util.DeriveAddress(env.Privatekey))
+	txopts.GasLimit = 2000000
+	txopts.Value = bondsize
+	txopts.GasPrice = gasPrice
+
+	//fetches UTXO
 	ch, err := childchain.NewClient(env.Watcher, &http.Client{})
 	if err != nil {
 		t.Errorf("failed to start client: %v", err)
@@ -167,15 +183,53 @@ func TestStartStandardExit(t *testing.T){
 	if err != nil {
 		t.Errorf("issue parseing utxo position %v", err)
 	}
-	exit, err := GetUTXOExitData(env.Watcher, int(utxo))
+	ed, err := GetUTXOExitData(env.Watcher, int(utxo))
 	if err != nil {
-t.Errorf("unexpected error from getting UTXO exit data %v", err)
+		t.Errorf("unexpected error from getting UTXO exit data %v", err)
 	}
-	// call start standard exit 
-	res, err := exit.StartStandardExit(env.EthClient, env.ExitGame, env.Privatekey, bond)
-	if err != nil {
-t.Errorf("unexpected error from, starting exit: %v", err)
+
+	if err := ste.Utxo(ed); err != nil {
+		t.Errorf("error setting data for childchain transaction")
 	}
+	if err := Options(ste, txopts); err != nil {
+		t.Errorf("transaction options invalid, %v", err)
+	}
+	if err := Build(ste); err != nil {
+		t.Errorf("exit build error, %v", err)
+	}
+	tx, err := Submit(ste)
+	if err != nil {t.Errorf("error submiting transaction for exit =: %v", err)}
+
+	res := tx.Hash().Hex()
+	fmt.Printf("%v", res)
+
+// 	bond, err := GetStandardExitBond(env.EthClient, env.ExitGame, env.Privatekey)
+// 	if err != nil {
+// 		t.Errorf("unexpected error %v", err)
+// 	}
+// 	// fetches all UTXOs available 
+// 	ch, err := childchain.NewClient(env.Watcher, &http.Client{})
+// 	if err != nil {
+// 		t.Errorf("failed to start client: %v", err)
+// 	}
+// 	utxos, err := ch.GetUTXOsFromAddress(env.Publickey)
+// 	if err != nil {
+// 		t.Errorf("error fetching utxos, %v", err)
+// 	}
+// 	// fetches the first UTXO we find
+// 	utxo, err := strconv.ParseInt(utxos.Data[0].UtxoPos.String(), 10, 0)
+// 	if err != nil {
+// 		t.Errorf("issue parseing utxo position %v", err)
+// 	}
+// 	exit, err := GetUTXOExitData(env.Watcher, int(utxo))
+// 	if err != nil {
+// t.Errorf("unexpected error from getting UTXO exit data %v", err)
+// 	}
+// 	// call start standard exit 
+// 	res, err := exit.StartStandardExit(env.EthClient, env.ExitGame, env.Privatekey, bond)
+// 	if err != nil {
+// t.Errorf("unexpected error from, starting exit: %v", err)
+// 	}
 	fmt.Printf("standard exit tx hash: %s \n", res)
 	sleep(t)
 	status := checkReceipt(res, t)

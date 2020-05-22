@@ -65,6 +65,19 @@ type DepositTransaction struct {
 	RlpTransaction []byte
 }
 
+type ExitBinder func(common.Address, bind.ContractBackend) (*rootchain.PaymentExitGame, error)
+
+type StandardExitTransaction struct {
+	*bind.TransactOpts
+	bind.ContractBackend
+	ExitGameAddress common.Address
+	ExitBinder ExitBinder
+	Proof []byte
+	TxBytes []byte
+	UtxoPos *big.Int
+	UtxoData StandardExitUTXOData
+}
+
 
 type Deposit struct {
 	PrivateKey string
@@ -585,6 +598,74 @@ func (d *DepositTransaction) Submit() (*types.Transaction, error) {
 		return nil, err
 	}
 	res, err := instance.Deposit(d.TransactOpts, d.RlpTransaction)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+func (c *Client) NewStandardExit(vaultAddress common.Address) *StandardExitTransaction {
+	return &StandardExitTransaction{
+		ContractBackend: c.ContractBackend,
+		ExitGameAddress: vaultAddress,
+		ExitBinder: rootchain.NewPaymentExitGame,
+	}
+}
+
+// get standard exit bond
+func (c *StandardExitTransaction) GetStandardExitBond(opts *bind.CallOpts) (*big.Int, error) {
+	instance, err := c.ExitBinder(c.ExitGameAddress, c.ContractBackend)
+	if err != nil {
+		return nil, err
+	}
+	amount, err := instance.StartStandardExitBondSize(opts)
+	if err != nil {
+		return nil, err
+	}
+	return amount, nil
+}
+
+//TODO check validations
+func (s *StandardExitTransaction) Options(t *bind.TransactOpts) error {
+	s.TransactOpts = t
+	return nil
+}
+
+// set UTXO data to standard exit
+func (s *StandardExitTransaction) Utxo(sed StandardExitUTXOData) error {
+	s.UtxoData = sed
+	return nil
+}
+
+// deserialize transaction txbytes and proofs 
+func (s *StandardExitTransaction) Build() error {
+	proof, err := hex.DecodeString(util.RemoveLeadingZeroX(s.UtxoData.Data.Proof))
+	if err != nil {
+		return err
+	}
+	txbytes, err := hex.DecodeString(util.RemoveLeadingZeroX(s.UtxoData.Data.Txbytes))
+	if err != nil {
+		return err
+	}
+	s.Proof = proof// []byte(proof)
+	s.TxBytes = txbytes// []byte(txbytes)
+	s.UtxoPos = s.UtxoData.Data.UtxoPos
+	return nil
+}
+
+//submit standard exit transaction 
+func (s *StandardExitTransaction) Submit() (*types.Transaction, error) {
+	instance, err := s.ExitBinder(s.ExitGameAddress, s.ContractBackend)
+	if err != nil {
+		return nil, err
+	}
+
+	seargs := rootchain.PaymentStandardExitRouterArgsStartStandardExitArgs{
+		UtxoPos: s.UtxoPos,
+		RlpOutputTx: s.TxBytes,
+		OutputTxInclusionProof: s.Proof,
+	}
+
+	res, err := instance.StartStandardExit(s.TransactOpts, seargs)
 	if err != nil {
 		return nil, err
 	}
