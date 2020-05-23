@@ -202,34 +202,6 @@ func TestStartStandardExit(t *testing.T){
 
 	res := tx.Hash().Hex()
 	fmt.Printf("%v", res)
-
-// 	bond, err := GetStandardExitBond(env.EthClient, env.ExitGame, env.Privatekey)
-// 	if err != nil {
-// 		t.Errorf("unexpected error %v", err)
-// 	}
-// 	// fetches all UTXOs available 
-// 	ch, err := childchain.NewClient(env.Watcher, &http.Client{})
-// 	if err != nil {
-// 		t.Errorf("failed to start client: %v", err)
-// 	}
-// 	utxos, err := ch.GetUTXOsFromAddress(env.Publickey)
-// 	if err != nil {
-// 		t.Errorf("error fetching utxos, %v", err)
-// 	}
-// 	// fetches the first UTXO we find
-// 	utxo, err := strconv.ParseInt(utxos.Data[0].UtxoPos.String(), 10, 0)
-// 	if err != nil {
-// 		t.Errorf("issue parseing utxo position %v", err)
-// 	}
-// 	exit, err := GetUTXOExitData(env.Watcher, int(utxo))
-// 	if err != nil {
-// t.Errorf("unexpected error from getting UTXO exit data %v", err)
-// 	}
-// 	// call start standard exit 
-// 	res, err := exit.StartStandardExit(env.EthClient, env.ExitGame, env.Privatekey, bond)
-// 	if err != nil {
-// t.Errorf("unexpected error from, starting exit: %v", err)
-// 	}
 	fmt.Printf("standard exit tx hash: %s \n", res)
 	sleep(t)
 	status := checkReceipt(res, t)
@@ -245,11 +217,36 @@ func TestProcessExit(t *testing.T) {
 		t.Errorf("error loading test env in standard exit test: %v", err)
 	}
 
-	p := ProcessExit{Contract: env.PlasmaFramework, PrivateKey: env.Privatekey, Token: util.EthCurrency, Client: env.EthClient}
-	res, err := ProcessExits(1, int64(env.ExitToProcess), p)
-	if err != nil {
-		t.Error(err)
+	client, _ := ethclient.Dial(env.EthClient)
+	rc := NewClient(client)
+	vaultID := "1"
+	numberOfExits := "1"
+	topExit := "0"
+	token := common.HexToAddress(util.EthCurrency)
+	petx := rc.NewProcessExit(common.HexToAddress(env.PlasmaFramework), token,  vaultID, topExit, numberOfExits)
+	gasPrice, _ := client.SuggestGasPrice(context.Background())
+	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.Privatekey))
+	txopts := bind.NewKeyedTransactor(privateKey)
+	txopts.From = common.HexToAddress(util.DeriveAddress(env.Privatekey))
+	txopts.GasLimit = 2000000
+	txopts.GasPrice = gasPrice
+
+	if err := Options(petx, txopts); err != nil {
+		t.Errorf("transaction options invalid, %v", err)
 	}
+
+	if err := Build(petx); err != nil {
+		t.Errorf("error building process exit transaction: %v \n", err)
+	}
+	tx, err := Submit(petx)
+	if err != nil {t.Errorf("error submiting transaction for process exit =: %v", err)}
+	res := tx.Hash().Hex()
+
+	// p := ProcessExit{Contract: env.PlasmaFramework, PrivateKey: env.Privatekey, Token: util.EthCurrency, Client: env.EthClient}
+	// res, err := ProcessExits(1, int64(env.ExitToProcess), p)
+	// if err != nil {
+	// 	t.Error(err)
+	// }
 	fmt.Printf("process exit tx hash: %s \n", res)
 	sleep(t)
 	status := checkReceipt(res, t)

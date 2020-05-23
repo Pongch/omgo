@@ -78,6 +78,20 @@ type StandardExitTransaction struct {
 	UtxoData StandardExitUTXOData
 }
 
+type PlasmaFrameworkBinder func(common.Address, bind.ContractBackend) (*rootchain.PlasmaFramework, error)
+
+type ProcessExitTransaction struct {
+	*bind.TransactOpts
+	bind.ContractBackend
+	PlasmaAddress common.Address
+	TokenAddress common.Address
+	VaultId string
+	TopExit string
+	NumberOfExits string
+	PlasmaFrameworkBinder PlasmaFrameworkBinder
+}
+
+
 
 type Deposit struct {
 	PrivateKey string
@@ -563,7 +577,6 @@ func (c *Client) NewDeposit(vaultAddress, owner, currency common.Address, amount
 	}
 }
 
-// func (d *DepositTransaction) Build()
 
 // set Ethereum transaction options, ensure fields are valid 
 func (d *DepositTransaction) Options(t *bind.TransactOpts) error {
@@ -670,6 +683,63 @@ func (s *StandardExitTransaction) Submit() (*types.Transaction, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+// new process exit transaction structs
+func (c *Client) NewProcessExit(plasmaAddress, tokenAddress common.Address, vaultId, topExit, numberOfExits string) *ProcessExitTransaction  {
+	return &ProcessExitTransaction{
+		ContractBackend: c.ContractBackend,
+		PlasmaAddress: plasmaAddress,
+		TokenAddress: tokenAddress,
+		VaultId: vaultId,
+		TopExit: topExit,
+		NumberOfExits: numberOfExits,
+		PlasmaFrameworkBinder: rootchain.NewPlasmaFramework,
+	}
+}
+
+// set options for process exit transaction
+func(p *ProcessExitTransaction) Options(t *bind.TransactOpts) error {
+	p.TransactOpts = t
+	return nil
+}
+
+
+// build the transaction
+func (p *ProcessExitTransaction) Build() error {
+	// TODO validation
+	return nil
+}
+
+// submit process exit transaction
+func (p *ProcessExitTransaction) Submit() (*types.Transaction, error) {
+	instance, err := p.PlasmaFrameworkBinder(p.PlasmaAddress, p.ContractBackend)
+	if err != nil {
+		return nil, err
+	}
+	exitnum, ok := new(big.Int).SetString(p.NumberOfExits, 10)
+	if !ok {
+		return nil, errors.New("cannot convert to big int in process exit")
+	}
+	topexit, ok :=  new(big.Int).SetString(p.TopExit, 10)
+	if !ok {
+		return nil, errors.New("cannot convert to big int in process exit")
+	}
+	vaultId, ok :=  new(big.Int).SetString(p.VaultId, 10)
+	if !ok {
+		return nil, errors.New("cannot convert to big int in process exit")
+	}
+	tx, err := instance.ProcessExits(
+		p.TransactOpts,
+		vaultId,
+		p.TokenAddress,
+		topexit,
+		exitnum,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
 }
 
 func Options(rtx  RootchainTransaction, t *bind.TransactOpts) error {
