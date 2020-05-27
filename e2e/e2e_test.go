@@ -12,63 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package plasma 
+package e2e
 
 import (
 	"testing"
 	"github.com/omisego/plasma-cli/util"
 	"github.com/omisego/plasma-cli/childchain"
-	// "github.com/omisego/plasma-cli/rootchain"
+	"github.com/omisego/plasma-cli/rootchain"
 	"fmt"
-	"os"
 	"strconv"
-	"time"
 	"context"
 	"net/http"
 	"math/big"
-	"github.com/joho/godotenv"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-type TestEnv struct {
-	Watcher, Privatekey, Publickey, EthClient, EthVault, ExitGame, PlasmaFramework string
-	UtxoPos, DepositAmount, ExitToProcess, BlockTime, BlockConfirmation int
-
-}
-
-func getEnvAsInt(name string, defaultVal int) int {
-	valueStr := os.Getenv(name)
-	if value, err := strconv.Atoi(valueStr); err == nil {
-		return value
-	}
-
-	return defaultVal
-}
-
-func loadTestEnv() (*TestEnv, error){
-	err := godotenv.Load("./integration_test.env")
-	if err != nil {
-		return nil, fmt.Errorf("error loading env in test: %v", err)
-	}
-	env := TestEnv{
-		Watcher: os.Getenv("WATCHER"),
-		Privatekey: os.Getenv("PRIVKEY"),
-		Publickey: os.Getenv("PUBKEY"),
-		EthClient: os.Getenv("ETH_CLIENT"),
-		EthVault: os.Getenv("ETH_VAULT_CONTRACT"),
-		ExitGame: os.Getenv("EXIT_GAME_CONTRACT"),
-		PlasmaFramework: os.Getenv("PLASMA_FRAMEWORK_CONTRACT"),
-		UtxoPos: getEnvAsInt("UTXO_POS_FOR_EXIT", 1),
-		DepositAmount: getEnvAsInt("DEPOSIT_AMOUNT",1),
-		BlockTime: getEnvAsInt("BLOCK_TIME", 12),
-		BlockConfirmation: getEnvAsInt("BLOCK_CONFIRMATION", 7),
-		ExitToProcess: getEnvAsInt("EXIT_TO_PROCESS",1),
-	}
-	return &env, nil
-}
 
 // must start new ETH Client, then take in a signer to sign transactions
 // TODO wrap all of the depositTx inside a rootchain wrapper interface function 
@@ -81,7 +42,7 @@ func TestDepositEthNew(t *testing.T) {
 	if err != nil {
 		t.Errorf("error initializing Ethereum client for deposit =: %v", err)
 	}
-	rc := NewClient(client)
+	rc := rootchain.NewClient(client)
 
 	depositTx := rc.NewDeposit(common.HexToAddress( env.EthVault ), common.HexToAddress(util.DeriveAddress(env.Privatekey)), common.HexToAddress(util.EthCurrency), strconv.Itoa(env.DepositAmount))
 	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.Privatekey))
@@ -94,13 +55,13 @@ func TestDepositEthNew(t *testing.T) {
 	txopts.GasLimit = 2000000
 	txopts.Value = big.NewInt(int64(env.DepositAmount))
 	txopts.GasPrice = gasPrice
-	if err := Options(depositTx, txopts); err != nil {
+	if err := rootchain.Options(depositTx, txopts); err != nil {
 		t.Errorf("transaction options invalid, %v", err)
 	}
-	if err := Build(depositTx); err != nil {
+	if err := rootchain.Build(depositTx); err != nil {
 		t.Errorf("deposit build error, %v", err)
 	}
-	tx, err := Submit(depositTx)
+	tx, err := rootchain.Submit(depositTx)
 	if err != nil {t.Errorf("error submiting transaction for deposit =: %v", err)}
 
 	fmt.Printf("%v", tx.Hash().Hex())
@@ -119,7 +80,7 @@ func TestGetStandardExitBond(t *testing.T) {
 		t.Errorf("error loading test env in get exit bond test: %v", err)
 	}
 	client, err := ethclient.Dial(env.EthClient)
-	rc := NewClient(client)
+	rc := rootchain.NewClient(client)
 	ste := rc.NewStandardExit(common.HexToAddress(env.ExitGame))
 	c := &bind.CallOpts{}
 	res, err := ste.GetStandardExitBond(c)
@@ -136,7 +97,7 @@ func TestStartStandardExit(t *testing.T){
 	}
 	// get standard exit bond
 	client, err := ethclient.Dial(env.EthClient)
-	rc := NewClient(client)
+	rc := rootchain.NewClient(client)
 	ste := rc.NewStandardExit(common.HexToAddress(env.ExitGame))
 	c := &bind.CallOpts{}
 	bondsize, err := ste.GetStandardExitBond(c)
@@ -165,7 +126,7 @@ func TestStartStandardExit(t *testing.T){
 	if err != nil {
 		t.Errorf("issue parseing utxo position %v", err)
 	}
-	ed, err := GetUTXOExitData(env.Watcher, int(utxo))
+	ed, err := rootchain.GetUTXOExitData(env.Watcher, int(utxo))
 	if err != nil {
 		t.Errorf("unexpected error from getting UTXO exit data %v", err)
 	}
@@ -173,13 +134,13 @@ func TestStartStandardExit(t *testing.T){
 	if err := ste.Utxo(ed); err != nil {
 		t.Errorf("error setting data for childchain transaction")
 	}
-	if err := Options(ste, txopts); err != nil {
+	if err := rootchain.Options(ste, txopts); err != nil {
 		t.Errorf("transaction options invalid, %v", err)
 	}
-	if err := Build(ste); err != nil {
+	if err := rootchain.Build(ste); err != nil {
 		t.Errorf("exit build error, %v", err)
 	}
-	tx, err := Submit(ste)
+	tx, err := rootchain.Submit(ste)
 	if err != nil {t.Errorf("error submiting transaction for exit =: %v", err)}
 
 	res := tx.Hash().Hex()
@@ -200,17 +161,17 @@ func TestProcessExit(t *testing.T) {
 	}
 
 	client, _ := ethclient.Dial(env.EthClient)
-	rc := NewClient(client)
+	rc := rootchain.NewClient(client)
 	vaultID := "1"
 	numberOfExits := "1"
 	topExit := "0"
 	token := common.HexToAddress(util.EthCurrency)
 	petx := rc.NewProcessExit(
-		PlasmaAddress(common.HexToAddress(env.PlasmaFramework)),
-		TokenAddress(token),
-		VaultId(vaultID),
-		TopExit(topExit),
-		NumberOfExits(numberOfExits),
+		rootchain.PlasmaAddress(common.HexToAddress(env.PlasmaFramework)),
+		rootchain.TokenAddress(token),
+		rootchain.VaultId(vaultID),
+		rootchain.TopExit(topExit),
+		rootchain.NumberOfExits(numberOfExits),
 	)
 	gasPrice, _ := client.SuggestGasPrice(context.Background())
 	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.Privatekey))
@@ -219,14 +180,14 @@ func TestProcessExit(t *testing.T) {
 	txopts.GasLimit = 2000000
 	txopts.GasPrice = gasPrice
 
-	if err := Options(petx, txopts); err != nil {
+	if err := rootchain.Options(petx, txopts); err != nil {
 		t.Errorf("transaction options invalid, %v", err)
 	}
 
-	if err := Build(petx); err != nil {
+	if err := rootchain.Build(petx); err != nil {
 		t.Errorf("error building process exit transaction: %v \n", err)
 	}
-	tx, err := Submit(petx)
+	tx, err := rootchain.Submit(petx)
 	if err != nil {t.Errorf("error submiting transaction for process exit =: %v", err)}
 	res := tx.Hash().Hex()
 
@@ -238,34 +199,5 @@ func TestProcessExit(t *testing.T) {
 	}
 }
 
-// wait for 2 Ethereum block
-func sleep(t *testing.T) {
-	env, err := loadTestEnv()
-	if err != nil {
-		t.Errorf("error while sleep: %v", err)
-	}
-	time.Sleep(time.Duration(env.BlockTime * env.BlockConfirmation) * time.Second)
-}
 
-// get the result of transaction, return success or failure 
-func checkReceipt(receipt string, t *testing.T) bool {
-	env, err := loadTestEnv()
-	if err != nil {
-		t.Errorf("error loading env. %v ", err)
-	}
-	client, err := ethclient.Dial(env.EthClient) 
-	if err != nil {
-		t.Errorf("bad client: %v", err)
-	}
-	hash := common.HexToHash(receipt)
-	tx, err := client.TransactionReceipt(context.Background(), hash)
-	if err != nil {
-		t.Errorf("bad tx receipt: %v", err)
-	}
-	if tx.Status == 0 {
-		return false
-	} else {
-		return true
-	}
-}
 
