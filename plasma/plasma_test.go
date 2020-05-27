@@ -112,24 +112,6 @@ func TestDepositEthNew(t *testing.T) {
 
 }
 
-func TestDepositEth(t *testing.T) {
-// 	env, err := loadTestEnv()
-// 	if err != nil {
-// 		t.Errorf("error loading test env in deposit test: %v", err)
-// 	}
-
-// 	d := Deposit{PrivateKey: env.Privatekey, Client: env.EthClient, Contract: env.EthVault, Amount: uint64(env.DepositAmount), Owner: util.DeriveAddress(env.Privatekey), Currency: util.EthCurrency}
-// 	res,  err := d.DepositEth()
-// 	if err != nil {
-// 		t.Error(err)
-// 	}
-// 	fmt.Printf("deposit tx hash: %s \n", res)
-// 	sleep(t)
-// 	status := checkReceipt(res, t)
-// 	if status == false {
-// 		t.Error("transaction failed")
-// 	}
-}
 
 func TestGetStandardExitBond(t *testing.T) {
 	env, err := loadTestEnv()
@@ -223,7 +205,13 @@ func TestProcessExit(t *testing.T) {
 	numberOfExits := "1"
 	topExit := "0"
 	token := common.HexToAddress(util.EthCurrency)
-	petx := rc.NewProcessExit(common.HexToAddress(env.PlasmaFramework), token,  vaultID, topExit, numberOfExits)
+	petx := rc.NewProcessExit(
+		PlasmaAddress(common.HexToAddress(env.PlasmaFramework)),
+		TokenAddress(token),
+		VaultId(vaultID),
+		TopExit(topExit),
+		NumberOfExits(numberOfExits),
+	)
 	gasPrice, _ := client.SuggestGasPrice(context.Background())
 	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.Privatekey))
 	txopts := bind.NewKeyedTransactor(privateKey)
@@ -242,11 +230,6 @@ func TestProcessExit(t *testing.T) {
 	if err != nil {t.Errorf("error submiting transaction for process exit =: %v", err)}
 	res := tx.Hash().Hex()
 
-	// p := ProcessExit{Contract: env.PlasmaFramework, PrivateKey: env.Privatekey, Token: util.EthCurrency, Client: env.EthClient}
-	// res, err := ProcessExits(1, int64(env.ExitToProcess), p)
-	// if err != nil {
-	// 	t.Error(err)
-	// }
 	fmt.Printf("process exit tx hash: %s \n", res)
 	sleep(t)
 	status := checkReceipt(res, t)
