@@ -1,4 +1,4 @@
-// Copyright 2019 OmiseGO Pte Ltd
+//
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@ package childchain
 
 import (
 	"fmt"
+	// "math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/omisego/plasma-cli/util"
@@ -33,7 +34,7 @@ type SignerFunc func([]byte) ([][]byte, error)
 
 // Fee is a amount and currency of transaction fee
 type Fee struct {
-	Amount   uint64         `json:"amount"`
+	// Amount   *big.Int         `json:"amount"`
 	Currency common.Address `json:"currency"`
 }
 

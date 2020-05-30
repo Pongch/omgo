@@ -1,6 +1,6 @@
 package main
 
-// Copyright 2019 OmiseGO Pte Ltd
+//
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,6 @@ import (
 
 func main() {
 	util.LogFormatter()
-	log.Info("Starting OmiseGO Plasma MoreVP CLI")
+	log.Info("Starting OMGO CLI")
 	parser.ParseArgs()
 }

@@ -1,4 +1,4 @@
-// Copyright 2019 OmiseGO Pte Ltd
+//
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,8 +27,8 @@ import (
 )
 
 type TestEnv struct {
-	Watcher, Privatekey, Publickey, EthClient, EthVault, ExitGame, PlasmaFramework string
-	UtxoPos, DepositAmount, PaymentAmount, ExitToProcess, BlockTime, BlockConfirmation int
+	Watcher, Privatekey, PaymentAmount,DepositAmount, Publickey, EthClient, EthVault, ExitGame, PlasmaFramework string
+	UtxoPos,  ExitToProcess, BlockTime, BlockConfirmation int
 
 }
 
@@ -55,8 +55,8 @@ func loadTestEnv() (*TestEnv, error){
 		ExitGame: os.Getenv("EXIT_GAME_CONTRACT"),
 		PlasmaFramework: os.Getenv("PLASMA_FRAMEWORK_CONTRACT"),
 		UtxoPos: getEnvAsInt("UTXO_POS_FOR_EXIT", 1),
-		DepositAmount: getEnvAsInt("DEPOSIT_AMOUNT",1),
-		PaymentAmount: getEnvAsInt("PAYMENT_AMOUNT",1),
+		DepositAmount: os.Getenv("DEPOSIT_AMOUNT"),
+		PaymentAmount: os.Getenv("PAYMENT_AMOUNT"),
 		BlockTime: getEnvAsInt("BLOCK_TIME", 12),
 		BlockConfirmation: getEnvAsInt("BLOCK_CONFIRMATION", 7),
 		ExitToProcess: getEnvAsInt("EXIT_TO_PROCESS",1),

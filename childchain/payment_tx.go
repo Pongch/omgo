@@ -1,4 +1,4 @@
-// Copyright 2019 OmiseGO Pte Ltd
+//
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/omisego/plasma-cli/util"
@@ -47,7 +48,7 @@ type CreateTransaction struct {
 // Payment specifies the amount,
 // currency and recipient of the output
 type Payment struct {
-	Amount   uint64         `json:"amount"`
+	Amount   *big.Int         `json:"amount"`
 	Currency common.Address `json:"currency"`
 	Owner    common.Address `json:"owner"`
 }
@@ -80,16 +81,17 @@ func AddOwner(o common.Address) PaymentOption {
 	}
 }
 
-func AddFee(amount uint64, curr common.Address) PaymentOption {
+func AddFee(curr common.Address) PaymentOption {
 	return func(c *CreateTransaction) {
-		c.Fee = Fee{Amount:amount, Currency: curr}
+		c.Fee = Fee{Currency: curr}
 	}
 }
 
-func AddPayment(amount uint64, addr, curr common.Address) PaymentOption {
+func AddPayment(amount string, addr, curr common.Address) PaymentOption {
 	return func(c *CreateTransaction) {
+		bamount, _ := new(big.Int).SetString(amount, 0)
 		payment := Payment{
-			Amount: amount,
+			Amount: bamount,
 			Currency: curr,
 			Owner: addr,
 		}
@@ -103,67 +105,31 @@ func AddMetadata(m string) PaymentOption {
 	}
 }
 
-// // NewPaymentTx nitialize a simple payment transaction
-// // with zero ETH fee and empty metadata as a default value
-// func (c *Client) NewPaymentTx() (p *PaymentTx) {
-// 	p = &PaymentTx{Client: c}
-// 	p.AddFee(0, EthCurrency)
-// 	p.AddMetadata(DefaultMetadata)
-// 	return p
-// }
 
-// // AddOwner adds an owner address to payment tx
-// func (p *PaymentTx) AddOwner(o string) error {
-// 	if !common.IsHexAddress(o) {
-// 		return fmt.Errorf("Owner is not a valid address")
-// 	}
-// 	p.CreateTransaction.Owner = common.HexToAddress(o)
-// 	return nil
-// }
+// validate payment transaction structs
+func validate(p *PaymentTx) error {
+	if len(p.CreateTransaction.Metadata) != 66 {
+		return fmt.Errorf("invalid length metadata, got %v, wanted %v", len(p.CreateTransaction.Metadata), 66)
+	}
+	if len(p.CreateTransaction.Payments) >= MaxOutputs {
+		return fmt.Errorf("error too many payments, max outputs are %v, got %v", MaxOutputs, len( p.CreateTransaction.Payments ))
+	}
+	if len(p.CreateTransaction.Payments) == 0 {
+		return errors.New("no payment specified")
+	}
 
-// // AddFee adds a fee currency and amount to be made
-// // by owner from the transaction
-// func (p *PaymentTx) AddFee(amount uint64, curr string) error {
-// 	if !common.IsHexAddress(curr) {
-// 		return fmt.Errorf("Fee currency is not a valid address")
-// 	}
-// 	p.CreateTransaction.Fee = Fee{Amount: amount, Currency: common.HexToAddress(curr)}
-// 	return nil
-// }
-
-// // AddMetadata adds a hex encoded metadata to the
-// // transaction
-// func (p *PaymentTx) AddMetadata(m string) error {
-// 	if len(m) != 66 {
-// 		return fmt.Errorf("invalid length metadata, got %v, wanted %v", len(m), 66)
-// 	}
-// 	p.CreateTransaction.Metadata = m
-// 	return nil
-// }
-
-// // AddPayment add a payment output to be made to
-// // a transaction
-// func (p *PaymentTx) AddPayment(amount uint64, addr string, curr string) error {
-// 	if !common.IsHexAddress(addr) {
-// 		return fmt.Errorf("Recipient is not a valid address")
-// 	}
-
-// 	if !common.IsHexAddress(curr) {
-// 		return fmt.Errorf("Payment currency is not a valid address")
-// 	}
-// 	payment := Payment{Amount: amount, Currency: common.HexToAddress(curr), Owner: common.HexToAddress(addr)}
-// 	if len(p.CreateTransaction.Payments) == MaxOutputs {
-// 		return fmt.Errorf("error too many payments, max outputs are %v", MaxOutputs)
-// 	}
-// 	p.CreateTransaction.Payments = append(p.CreateTransaction.Payments, payment)
-// 	return nil
-// }
+	return nil
+}
 
 // BuildTransaction forms a transaction to be signed via transaction.create endpoint
 // NOTE: if response.Data.Result == "intermediate"
 // means payment cannot be completed in one transaction, this tx will automatically
 // performs a merge instead
+// TODO: clients should be able to respond to intermediate transactions
 func (p *PaymentTx) BuildTransaction() error {
+	if err := validate(p); err != nil {
+		return err
+	}
 	if len(p.CreateTransaction.Payments) == 0 {
 		return errors.New("not enough arguement to build transaction")
 	}
@@ -182,9 +148,10 @@ func (p *PaymentTx) BuildTransaction() error {
 
 	if response.Success == false {
 		return fmt.Errorf(
-			"Error creating transaction. \n Code: %v \n \n Description: %v",
+			"Error creating transaction. \n Code: %v \n Description: %v \n Object: %v \n" ,
 			response.Data.Code,
 			response.Data.Description,
+			response.Data.Object,
 		)
 	}
 

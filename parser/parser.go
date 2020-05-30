@@ -1,4 +1,4 @@
-// Copyright 2019 OmiseGO Pte Ltd
+//
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -59,7 +59,6 @@ var (
 	currency         = send.Flag("currency", "currency of the amount to send, default to ETH").Default(childchain.EthCurrency).String()
 	watcherSubmitURL = send.Flag("watcher", "FQDN of the Watcher in the format http://watcher.path.net").Required().String()
 	feetoken         = send.Flag("feetoken", "set the token to be used as transaction fee, default to ETH").Default(childchain.EthCurrency).String()
-	feeamount        = send.Flag("feeamount", "set the amount to be used as transaction fee, default to 0").Default("0").Uint64()
 	metadata         = send.Flag("metadata", "additional metadata to send with the transaction, up to 32 bytes").Default(childchain.DefaultMetadata).String()
 
 	exit           = kingpin.Command("exit", "Standard exit a UTXO back to the root chain.")
@@ -78,12 +77,6 @@ var (
 	create        = kingpin.Command("create", "Create a resource.")
 	createAccount = create.Command("account", "Create an account consisting of Public and Private key")
 
-	// challengeexit  = kingpin.Command("challenge exit", "Challenge an invalid exit on the root chain")
-	// ceContract     = challengeexit.Flag("contract", "Address of the Plasma MoreVP smart contract").Required().String()
-	// ceClient       = challengeexit.Flag("client", "Address of the Ethereum client. Infura and local node supported https://rinkeby.infura.io/v3/api_key or http://localhost:8545").Required().String()
-	// cePrivateKey   = challengeexit.Flag("privatekey", "Private key used to fund the gas for the smart contract call").Required().String()
-	// ceUTXOPosition = challengeexit.Flag("utxo", "the UTXO to call challenge exit").Required().String()
-	// ceWatcherURL   = challengeexit.Flag("watcher", "FQDN of the Watcher in the format http://watcher.path.net").Required().String()
 )
 
 func ParseArgs() {
@@ -125,15 +118,7 @@ func ParseArgs() {
 			DisplayByzantineEvents(ws)
 		}
 	case deposit.FullCommand():
-		//plasma_cli deposit --privatekey=0x944A81BeECac91802787fBCFB9767FCBf81db1f5 --client=https://rinkeby.infura.io/v3/api_key --contract=0x457e2ec4ad356d3cb449e3bd4ba640d720c30377 --currency=ETH
-		// c := plasma.Deposit{PrivateKey: *privateKey, Client: *client, Contract: *contract, Amount: *depositAmount, Owner: util.DeriveAddress(*privateKey), Currency: *depositCurrency}
-		// res, err := c.DepositEth()
-		// if err != nil {
-		// 	log.Error(err)
-		// } else {
-		// 	DisplayEthTransaction("Deposit successful, txhash: ", res)
-		// }
-		client, err := ethclient.Dial(*client)
+				client, err := ethclient.Dial(*client)
 		if err != nil {
 			log.Errorf("error initializing Ethereum client for deposit, %v", err)
 		}
@@ -157,32 +142,24 @@ func ParseArgs() {
 			log.Errorf("deposit build error, %v", err)
 		}
 		tx, err := rootchain.Submit(depositTx)
-		if err != nil {log.Errorf("error submiting transaction for deposit =: %v", err)}
-
-		log.Infof("%v", tx.Hash().Hex())
+		if err != nil {
+			log.Errorf("error submiting transaction for deposit =: %v", err)
+		} else {
+			log.Infof("deposit txhash: %v", tx.Hash().Hex())
+		}
 
 	case send.FullCommand():
 		chch, err := childchain.NewClient(*watcherSubmitURL, &http.Client{})
 		if err != nil {
 			log.Errorf("unexpected error from creating new client: %v", err)
 		}
-		ptx := chch.NewPaymentTx()
+		ptx := chch.NewPaymentTx(
+			childchain.AddOwner(common.HexToAddress(util.DeriveAddress(*privatekey))),
+			childchain.AddPayment(string(*amount), common.HexToAddress(*to), common.HexToAddress(*currency)),
+			childchain.AddMetadata(*metadata),
+			childchain.AddFee(common.HexToAddress(*feetoken)),
 
-		if err = ptx.AddOwner(util.DeriveAddress(*privatekey)); err != nil {
-			log.Errorf("unexpected error from Adding owner: %v", err)
-		}
-
-		if err = ptx.AddPayment(*amount, *to, *currency); err != nil {
-			log.Errorf("unexpected error from Adding payment: %v", err)
-		}
-		if err = ptx.AddMetadata(*metadata); err != nil {
-			log.Errorf("unexpected error from Adding metadata: %v", err)
-		}
-
-		if err = ptx.AddFee(*feeamount, *feetoken); err != nil {
-			log.Errorf("unexpected error from Adding metadata: %v", err)
-		}
-
+		)
 		if err = childchain.BuildTransaction(ptx); err != nil {
 			log.Errorf("unexpected error : %v", err)
 		}
@@ -205,13 +182,10 @@ func ParseArgs() {
 		gtx, err := chch.GetTransaction(*txHash)
 		if err != nil {
 			log.Errorf("got error: %v", err)
+		} else {
+			DisplayGetResponse(gtx)
 		}
-		DisplayGetResponse(gtx)
 	case exit.FullCommand():
-		//plasma_cli exit --utxo=1000000000 --privatekey=foo --contract=0x5bb7f2492487556e380e0bf960510277cdafd680 --watcher=ari.omg.network
-		// s := plasma.StandardExit{UtxoPosition: util.ConvertStringToInt(*utxoPosition), Contract: *contractExit, PrivateKey: *exitPrivateKey, Client: *clientExit}
-		// log.Info("Attempting to exit UTXO ", *utxoPosition)
-		// s.StartStandardExit(*watcherExitURL)
 		client, err := ethclient.Dial(*clientExit)
 		rc := rootchain.NewClient(client)
 		ste := rc.NewStandardExit(common.HexToAddress(*contractExit))
@@ -228,16 +202,6 @@ func ParseArgs() {
 		txopts.Value = bondsize
 		txopts.GasPrice = gasPrice
 
-		//fetches UTXO
-		// ch, err := childchain.NewClient(*watcherExitURL, &http.Client{})
-		// if err != nil {
-		// 	log.Errorf("failed to start client: %v", err)
-		// }
-		// utxos, err := ch.GetUTXOsFromAddress(util.DeriveAddress(*exitPrivateKey))
-		// if err != nil {
-		// 	log.Errorf("error fetching utxos, %v", err)
-		// }
-		// fetches the first UTXO we find
 		utxo, err := strconv.ParseInt(*utxoPosition, 10, 0)
 		if err != nil {
 			log.Errorf("issue parseing utxo position %v", err)
@@ -257,17 +221,15 @@ func ParseArgs() {
 			log.Errorf("exit build error, %v", err)
 		}
 		tx, err := rootchain.Submit(ste)
-		if err != nil {log.Errorf("error submiting transaction for exit =: %v", err)}
-
-		res := tx.Hash().Hex()
-		log.Printf("%v", res)
-		log.Printf("standard exit tx hash: %s \n", res)
+		if err != nil {
+			log.Errorf("error submiting transaction for exit =: %v", err)
+		} else {
+			res := tx.Hash().Hex()
+			log.Printf("%v", res)
+			log.Printf("standard exit tx hash: %s \n", res)
+		}
 
 	case process.FullCommand():
-		//plasma_cli process --contract=0x5bb7f2492487556e380e0bf960510277cdafd680 --token 0x0 --privatekey=foo --client=https://rinkeby.infura.io/v3/api_key
-		// p := plasma.ProcessExit{Contract: *processContract, PrivateKey: *processPrivateKey, Token: *processToken, Client: *processExitClient}
-		// log.Info("Calling process exits in the Plasma contract")
-		// plasma.ProcessExits(1,1, p)
 		client, _ := ethclient.Dial(*processExitClient)
 		rc := rootchain.NewClient(client)
 		vaultID := "1"
@@ -296,11 +258,12 @@ func ParseArgs() {
 			log.Errorf("error building process exit transaction: %v \n", err)
 		}
 		tx, err := rootchain.Submit(petx)
-		if err != nil {log.Errorf("error submiting transaction for process exit =: %v", err)}
-		res := tx.Hash().Hex()
-
-		log.Printf("process exit tx hash: %s \n", res)
-
+		if err != nil {
+			log.Errorf("error submiting transaction for process exit =: %v", err)
+		} else {
+			res := tx.Hash().Hex()
+			log.Printf("process exit tx hash: %s \n", res)
+		}
 	case createAccount.FullCommand():
 		//plasma_cli create account
 		log.Info("Generating Keypair")
@@ -315,15 +278,8 @@ func ParseArgs() {
 		exitData, err := chch.GetUTXOExitData(*getExitUTXOPosition)
 		if err != nil {
 			log.Error(err)
+		} else {
+			log.Info("UTXO Position: ", exitData.Data.UtxoPos, " Proof: ", exitData.Data.Proof)
 		}
-		log.Info("UTXO Position: ", exitData.Data.UtxoPos, " Proof: ", exitData.Data.Proof)
-	// case challengeexit.FullCommand():
-	// 	//plasma_cli challengeexit --contract="" --client="" --privatekey="" --utxo="" --watcher=""
-	// 	challengeData, err := plasma.GetChallengeData(*ceWatcherURL, util.ConvertStringToInt(*ceUTXOPosition))
-	// 	log.Info(challengeData)
-	// 	if err != nil {
-	// 		log.Fatalf("got error retrieving challenge data %v", err)
-	// 	}
-	// 	challengeData.ChallengeInvalidExit(*ceClient, *ceContract, *cePrivateKey)
 	}
 }

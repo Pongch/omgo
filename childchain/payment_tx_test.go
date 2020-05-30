@@ -1,4 +1,4 @@
-// Copyright 2019 OmiseGO Pte Ltd
+//
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/omisego/plasma-cli/util"
 )
 
@@ -38,10 +39,10 @@ func TestBuildPaymentTx(t *testing.T) {
 		t.Errorf("unexpected error from creating new client: %v", err)
 	}
 	paymenttx := chch.NewPaymentTx(
-		AddOwner("0xb3256026863eb6ae5b06fa396ab09069784ea8ea"),
-		AddFee(5, EthCurrency),
+		AddOwner(common.HexToAddress( "0xb3256026863eb6ae5b06fa396ab09069784ea8ea" )),
+		AddFee(common.HexToAddress( EthCurrency )),
 		AddMetadata(DefaultMetadata),
-		AddPayment(100, "0xb3256026863eb6ae5b06fa396ab09069784ea8ea", EthCurrency),
+		AddPayment("100", common.HexToAddress( "0xb3256026863eb6ae5b06fa396ab09069784ea8ea" ), common.HexToAddress( EthCurrency )),
 	)
 	err = paymenttx.BuildTransaction()
 	response := paymenttx.CreateTransactionResponse.Data

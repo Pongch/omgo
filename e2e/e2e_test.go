@@ -1,4 +1,4 @@
-// Copyright 2019 OmiseGO Pte Ltd
+//
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ func TestDepositEthNew(t *testing.T) {
 	}
 	rc := rootchain.NewClient(client)
 
-	depositTx := rc.NewDeposit(common.HexToAddress( env.EthVault ), common.HexToAddress(util.DeriveAddress(env.Privatekey)), common.HexToAddress(util.EthCurrency), strconv.Itoa(env.DepositAmount))
+	depositTx := rc.NewDeposit(common.HexToAddress( env.EthVault ), common.HexToAddress(util.DeriveAddress(env.Privatekey)), common.HexToAddress(util.EthCurrency), env.DepositAmount)
 	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.Privatekey))
 	if err != nil {
 		t.Errorf("bad privatekey: %v", err)
@@ -53,7 +53,8 @@ func TestDepositEthNew(t *testing.T) {
 	txopts := bind.NewKeyedTransactor(privateKey)
 	txopts.From = common.HexToAddress(util.DeriveAddress(env.Privatekey))
 	txopts.GasLimit = 2000000
-	txopts.Value = big.NewInt(int64(env.DepositAmount))
+	bvalue, _ := new(big.Int).SetString(env.DepositAmount, 0)
+	txopts.Value = bvalue
 	txopts.GasPrice = gasPrice
 	if err := rootchain.Options(depositTx, txopts); err != nil {
 		t.Errorf("transaction options invalid, %v", err)
@@ -210,9 +211,9 @@ func TestPaymentTransaction(t *testing.T) {
 	}
 	ptx := chch.NewPaymentTx(
 		childchain.AddOwner(common.HexToAddress(util.DeriveAddress(env.Privatekey))),
-		childchain.AddPayment(uint64( env.PaymentAmount ), common.HexToAddress( env.Publickey ), common.HexToAddress( childchain.EthCurrency )),
+		childchain.AddPayment(env.PaymentAmount, common.HexToAddress( env.Publickey ), common.HexToAddress( childchain.EthCurrency )),
 		childchain.AddMetadata(childchain.DefaultMetadata),
-		childchain.AddFee(0, common.HexToAddress( childchain.EthCurrency )),
+		childchain.AddFee(common.HexToAddress( childchain.EthCurrency )),
 	)
 
 	if err = childchain.BuildTransaction(ptx); err != nil {
@@ -226,6 +227,6 @@ func TestPaymentTransaction(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error : %v", err)
 	}
-	fmt.Printf("txhash: %v \n", res)
+	fmt.Printf("txhash: %v \n", res )
 }
 
