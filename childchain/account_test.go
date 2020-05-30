@@ -1,4 +1,4 @@
-// Copyright 2019 OmiseGO Pte Ltd
+//
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,19 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package plasma
+package childchain
 
 import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"math/big"
+
+	"github.com/omisego/plasma-cli/util"
 )
 
 // Mock test server
+//TODO move to a private package
+//TODO should check JSON payload for specific fields/values
 func createMockServer(t *testing.T, rString string, url string, rStruct interface{}) *httptest.Server {
 	ms := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -55,10 +59,21 @@ func createMockServer(t *testing.T, rString string, url string, rStruct interfac
 func TestGetBalance(t *testing.T) {
 	rs := `{ "data": [ { "amount": 1000, "currency": "0x0000000000000000000000000000000000000000" } ], "success": true, "version": "0.2" }`
 	amountWanted := float64(1000)
-	currencyWanted := EthCurrency
+	currencyWanted := util.EthCurrency
 	ms := createMockServer(t, rs, "/account.get_balance", WatcherBalanceFromAddress{})
 	defer ms.Close()
-	balance, err := GetBalance("0xBddeAeE01f00e02c081D36c100D5DEe723cB9E17", ms.URL)
+	chch, err := NewClient(ms.URL, &http.Client{})
+	if err != nil {
+		t.Errorf("unexpected error from creating new client: %v", err)
+	}
+
+	//invalid input without 0x
+	_, err = chch.GetBalance("BddeAeE01f00e02c081D36c100D5DEe723cB9E17")
+	if err == nil {
+		t.Errorf("expecting error from deriving address, but got: %v", err)
+	}
+
+	balance, err := chch.GetBalance("0xBddeAeE01f00e02c081D36c100D5DEe723cB9E17")
 	if err != nil {
 		t.Errorf("unexpected error from getting balance: %v", err)
 	}
@@ -74,10 +89,14 @@ func TestGetBalance(t *testing.T) {
 func TestGetBalanceWithExponent(t *testing.T) {
 	rs := `{ "data": [ { "amount": 3.335e+21, "currency": "0x0000000000000000000000000000000000000000" } ], "success": true, "version": "0.2" }`
 	amountWanted := 3.335e+21
-	currencyWanted := EthCurrency
+	currencyWanted := util.EthCurrency
 	ms := createMockServer(t, rs, "/account.get_balance", WatcherBalanceFromAddress{})
 	defer ms.Close()
-	balance, err := GetBalance("0xBddeAeE01f00e02c081D36c100D5DEe723cB9E17", ms.URL)
+	chch, err := NewClient(ms.URL, &http.Client{})
+	if err != nil {
+		t.Errorf("unexpected error from creating new client: %v", err)
+	}
+	balance, err := chch.GetBalance("0xBddeAeE01f00e02c081D36c100D5DEe723cB9E17")
 	if err != nil {
 		t.Errorf("unexpected error from getting balance: %v", err)
 	}
@@ -96,7 +115,16 @@ func TestGetUTXOs(t *testing.T) {
 	expectedUtxo := big.NewInt(1741002000000000)
 	ms := createMockServer(t, rs, "/account.get_utxos", WatcherUTXOsFromAddress{})
 	defer ms.Close()
-	balance, err := GetUTXOsFromAddress("0x4522fb44c2ab359e76ecc75c22c9409690f12241", ms.URL)
+	chch, err := NewClient(ms.URL, &http.Client{})
+	if err != nil {
+		t.Errorf("unexpected error from creating new client: %v", err)
+	}
+	//invalid input without 0x
+	_, err = chch.GetUTXOsFromAddress("BddeAeE01f00e02c081D36c100D5DEe723cB9E17")
+	if err == nil {
+		t.Errorf("expecting error from deriving address, but got: %v", err)
+	}
+	balance, err := chch.GetUTXOsFromAddress("0x4522fb44c2ab359e76ecc75c22c9409690f12241")
 	if err != nil {
 		t.Errorf("unexpected error from getting balance: %v", err)
 	}
@@ -114,7 +142,11 @@ func TestGetUTXOsWithExponent(t *testing.T) {
 	amountWanted := 1.949e+21
 	ms := createMockServer(t, rs, "/account.get_utxos", WatcherUTXOsFromAddress{})
 	defer ms.Close()
-	res, err := GetUTXOsFromAddress("0x4522fb44c2ab359e76ecc75c22c9409690f12241", ms.URL)
+	chch, err := NewClient(ms.URL, &http.Client{})
+	if err != nil {
+		t.Errorf("unexpected error from creating new client: %v", err)
+	}
+	res, err := chch.GetUTXOsFromAddress("0x4522fb44c2ab359e76ecc75c22c9409690f12241")
 	if err != nil {
 		t.Errorf("unexpected error from getting balance: %v", err)
 	}
@@ -129,7 +161,11 @@ func TestGetUTXOsWithLargeUtxoPos(t *testing.T) {
 	utxoWanted, _ := new(big.Int).SetString("1741002000000000100012344443", 10)
 	ms := createMockServer(t, rs, "/account.get_utxos", WatcherUTXOsFromAddress{})
 	defer ms.Close()
-	res, err := GetUTXOsFromAddress("0x4522fb44c2ab359e76ecc75c22c9409690f12241", ms.URL)
+	chch, err := NewClient(ms.URL, &http.Client{})
+	if err != nil {
+		t.Errorf("unexpected error from creating new client: %v", err)
+	}
+	res, err := chch.GetUTXOsFromAddress("0x4522fb44c2ab359e76ecc75c22c9409690f12241")
 	if err != nil {
 		t.Errorf("unexpected error from getting balance: %v", err)
 	}
@@ -141,4 +177,3 @@ func TestGetUTXOsWithLargeUtxoPos(t *testing.T) {
 		t.Errorf("unexpected error, wanted amount %v, got %v", utxoWanted, res.Data[0].UtxoPos)
 	}
 }
-

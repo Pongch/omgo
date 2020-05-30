@@ -1,8 +1,8 @@
-// Copyright 2019 OmiseGO Pte Ltd
+//
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
-// You may obtain a copy of the License at
 // you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
@@ -12,34 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package plasma
+package childchain
 
 import (
 	"encoding/json"
-	"net/http"
+	"fmt"
 	"math/big"
 
 	"github.com/omisego/plasma-cli/util"
-
 	log "github.com/sirupsen/logrus"
 )
 
-// UTXOs of an address returned from watcher
+// WatcherUTXOsFromAddress is a returned response from
+// calling account.get_utxos
 type WatcherUTXOsFromAddress struct {
 	Version string `json:"version"`
 	Success bool   `json:"success"`
 	Data    []struct {
-		UtxoPos  *big.Int     `json:"utxo_pos"`
-		Txindex  int     `json:"txindex"`
-		Owner    string  `json:"owner"`
-		Oindex   int     `json:"oindex"`
-		Currency string  `json:"currency"`
-		Blknum   int     `json:"blknum"`
-		Amount   float64 `json:"amount"`
+		UtxoPos  *big.Int `json:"utxo_pos"`
+		Txindex  int      `json:"txindex"`
+		Owner    string   `json:"owner"`
+		Oindex   int      `json:"oindex"`
+		Currency string   `json:"currency"`
+		Blknum   int      `json:"blknum"`
+		Amount   float64  `json:"amount"`
 	} `json:"data"`
 }
 
-// balance of an address returned from watcher
+// WatcherBalanceFromAddress is a returned response from
+// calling account.get_balance
 type WatcherBalanceFromAddress struct {
 	Version string `json:"version"`
 	Success bool   `json:"success"`
@@ -49,34 +50,14 @@ type WatcherBalanceFromAddress struct {
 	} `json:"data"`
 }
 
-// log the UTXO data in a human friendly format
-func DisplayUTXOS(u *WatcherUTXOsFromAddress) {
-	for _, value := range u.Data {
-		log.Info("Owner: ", value.Owner)
-		log.Info("Amount: ", value.Amount)
-		log.Info("Block Number: ", value.Blknum)
-		log.Info("Transaction Index: ", value.Txindex)
-		log.Info("Output Index: ", value.Oindex)
-		log.Info("Currency: ", value.Currency)
-		log.Info("UTXO Position: ", value.UtxoPos)
+// GetUTXOsFromAddress Retrieve the UTXOs associated with an address
+// from the Watcher client
+func (c *Client) GetUTXOsFromAddress(address string) (*WatcherUTXOsFromAddress, error) {
+	if util.ValidateHex(address) != nil {
+		return nil, fmt.Errorf("error validating address in GetUTXOsFromAddress(): %v", util.ValidateHex(address))
 	}
-}
-
-// log the balance data in a human friendly format
-func DisplayBalance(b *WatcherBalanceFromAddress) {
-	for _, v := range b.Data {
-		log.Info("Currency: ", v.Currency)
-		log.Info("Amount: ", v.Amount)
-	}
-}
-
-// Retrieve the UTXOs associated with an address from the Watcher
-func GetUTXOsFromAddress(address string, w string) (*WatcherUTXOsFromAddress, error) {
-	client := &http.Client{}
 	postData := map[string]interface{}{"address": address, "limit": "10000"}
-	rstring, err := util.SendChChReq(
-		client,
-		w,
+	rstring, err := c.do(
 		"/account.get_utxos",
 		postData,
 	)
@@ -89,13 +70,13 @@ func GetUTXOsFromAddress(address string, w string) (*WatcherUTXOsFromAddress, er
 	return &response, nil
 }
 
-// Get balance for a certain address
-func GetBalance(address string, watcher string) (*WatcherBalanceFromAddress, error) {
-	client := &http.Client{}
+// GetBalance fetchs a balance for a certain address
+func (c *Client) GetBalance(address string) (*WatcherBalanceFromAddress, error) {
+	if util.ValidateHex(address) != nil {
+		return nil, fmt.Errorf("error validating address in GetBalance(): %v", util.ValidateHex(address))
+	}
 	postData := map[string]interface{}{"address": address}
-	rstring, err := util.SendChChReq(
-		client,
-		watcher,
+	rstring, err := c.do(
 		"/account.get_balance",
 		postData,
 	)
@@ -103,7 +84,7 @@ func GetBalance(address string, watcher string) (*WatcherBalanceFromAddress, err
 	jsonErr := json.Unmarshal([]byte(rstring), &response)
 	if jsonErr != nil {
 		log.Warning("Could not unmarshal successful response from the Watcher")
-		errorInfo := watcherError{}
+		var errorInfo ClientError
 		processError := json.Unmarshal([]byte(rstring), &errorInfo)
 		if processError != nil { // Response from the Watcher does not match a struct
 			return nil, err

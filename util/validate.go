@@ -1,6 +1,4 @@
-package main
-
-// Copyright 2019 OmiseGO Pte Ltd
+//
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,14 +12,19 @@ package main
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+package util
+
 import (
-	"github.com/omisego/plasma-cli/parser"
-	"github.com/omisego/plasma-cli/util"
-	log "github.com/sirupsen/logrus"
+	"fmt"
+
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
-func main() {
-	util.LogFormatter()
-	log.Info("Starting OmiseGO Plasma MoreVP CLI")
-	parser.ParseArgs()
+func ValidateHex(x string) error {
+	_, err := hexutil.Decode(x)
+	if err != nil {
+		return fmt.Errorf("error decoding hex string: %v", err)
+	}
+
+	return nil
 }
