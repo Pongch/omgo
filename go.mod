@@ -1,4 +1,4 @@
-module github.com/omisego/plasma-cli
+module github.com/pongch/omgo
 
 go 1.12
 

@@ -1,28 +1,65 @@
-# OmiseGO Plasma CLI
+# OMGO Client Library
 
-The Plasma CLI is used to interact with the OMG network from the command line. Technical details about Ethereum and Plasma are abstracted from the user.
+golang client library for OMG Network
 
-Plasma CLI enables the user to:
-* deposit ETH to the Plasma contract
-* create send, split and merge transactions
-* exit ETH from the OMG Network back to Ethereum
+**please note that this repo is still in experimental stage. use it at your own risk **
 
-Connectivity to Ethereum via a local RPC node or Infura is supported.
+## Compatibility 
 
-ERC20 tokens are not currently supported.
+compatible with OMG Network V1 Beta
 
-## Compatibility
+## Functionality 
 
-This tool is compatible with version 0.1 of the OMG Network
+root chain:
+1. Deposit ETH to the root chain contract
+2. Start standard exit with ETH
+3. Process exit UTXO back to root chain 
+
+*Note*: current functionalities are limited, but /abi package provides binder which give clients all available root chain contract calls from scratch, this can be found in:
+`github.com/pongch/omgo/abi`
+
+child chain:
+1. get utxos via `/account.get_utxos`
+2. get network status via `/status.get`
+3. get balance via `/account.get_balance`
+4. create payment transaction via convenient transaction API: `/transaction.create` 
+5. get transaction information via: `/transaction.get` 
+
+## Packages
+
+1. githu.com/pongch/omgo/abi -> provides clients with all available root chain contract calls
+2. github.com/pongch/omgo/childchain -> provides clients with child chain API functionality
+3. github.com/pongch/omgo/childchain -> provides client with root chain contract calls
+4. github.com/pongch/omgo/util -> provides client with utility functions
+5. github.com/pongch/omgo/e2e -> end to end test
+6. github.com/pongch/omgo/cmd/cli -> CLI package
+
+## Getting Started
+
+import the client library via golang import
+
+```
+import "github.com/pongch/omgo"
+```
+
+## License
+
+This project is licensed under the Apache 2.0 License - see the [LICENSE.md](LICENSE.md) file for details
+
+# How to run via CLI
+
+The OMGO CLI is used to interact with an OMG Network from the command line. Technical details about Ethereum and Plasma are abstracted from the user.
+Connectivity to Ethereum via a local RPC node or Infura is required.
+
+Note: ERC20 tokens are not currently supported.
 
 ## Installation
 
-`plasma_cli` is available as binaries at https://github.com/omisego/plasma-cli/releases. Download the binary that matches your operating system.
+Currently, the CLI must be built from source:
 
-After downloading the latest binary file (on macOS):
-1. rename the file `$ mv "name_of_your_binary_file" plasma_cli`
-2. set execute permissions `$ chmod u+x ./plasma_cli`
-3. run it `$ ./plasma_cli --help`
+1. Run `go install` on root of the repository 
+2. cd into `/cmd/cli`
+3. run `go build`
 
 ## Create an Account (Keypair)
 
@@ -71,7 +108,8 @@ optional arguements:
 plasma_cli exit --utxo=UTXO_position --privatekey="private_key" --contract="contract_address" --watcher="watcher_url" --client="local_rpc_server_or_Infura_URL"
 ```
 
-## 
+## Process Exit
+
 ```
-plasma_cli challengeexit --contract="contract_address" --client="local_rpc_server_or_Infura_URL" --privatekey="private_key" --utxo="UTXO_position" --watcher="watcher_url"
+plasma_cli process --privatekey="private_key" --contract="contract_address" --watcher="watcher_url" --client="local_rpc_server_or_Infura_URL"
 ```
