@@ -19,7 +19,7 @@ import (
 	// "math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/omisego/plasma-cli/util"
+	"github.com/pongch/omgo/util"
 )
 
 const (

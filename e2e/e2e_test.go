@@ -16,9 +16,9 @@ package e2e
 
 import (
 	"testing"
-	"github.com/omisego/plasma-cli/util"
-	"github.com/omisego/plasma-cli/childchain"
-	"github.com/omisego/plasma-cli/rootchain"
+	"github.com/pongch/omgo/util"
+	"github.com/pongch/omgo/childchain"
+	"github.com/pongch/omgo/rootchain"
 	"fmt"
 	"strconv"
 	"context"

@@ -15,13 +15,14 @@ package main
 // limitations under the License.
 
 import (
-	"github.com/omisego/plasma-cli/parser"
-	"github.com/omisego/plasma-cli/util"
+	// "github.com/pongch/omgo/cli"
+	"github.com/pongch/omgo/util"
 	log "github.com/sirupsen/logrus"
 )
 
 func main() {
 	util.LogFormatter()
 	log.Info("Starting OMGO CLI")
-	parser.ParseArgs()
+	ParseArgs()
+	// parser.ParseArgs()
 }
