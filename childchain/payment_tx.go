@@ -29,7 +29,7 @@ import (
 // it can be used to transfer funds from one to many
 type PaymentTx struct {
 	Client                    *Client
-	CreateTransaction         CreateTransaction
+	CreateTransaction         *CreateTransaction
 	CreateTransactionResponse *CreateTransactionResponse
 	Signatures                [][]byte
 	TypedTransaction          TypedTransaction
@@ -61,61 +61,103 @@ type TypedTransaction struct {
 	Signatures []string `json:"signatures"`
 }
 
-// NewPaymentTx nitialize a simple payment transaction
-// with zero ETH fee and empty metadata as a default value
-func (c *Client) NewPaymentTx() (p *PaymentTx) {
+
+type PaymentOption func(*CreateTransaction)
+
+func (c *Client) NewPaymentTx(popts ...PaymentOption) (p *PaymentTx) {
 	p = &PaymentTx{Client: c}
-	p.AddFee(0, EthCurrency)
-	p.AddMetadata(DefaultMetadata)
+	ctx := &CreateTransaction{}
+	for _, setOption := range popts {
+		setOption(ctx)
+	}
+	p.CreateTransaction = ctx
 	return p
 }
 
-// AddOwner adds an owner address to payment tx
-func (p *PaymentTx) AddOwner(o string) error {
-	if !common.IsHexAddress(o) {
-		return fmt.Errorf("Owner is not a valid address")
+func AddOwner(o common.Address) PaymentOption {
+	return func(c *CreateTransaction) {
+		c.Owner = o
 	}
-	p.CreateTransaction.Owner = common.HexToAddress(o)
-	return nil
 }
 
-// AddFee adds a fee currency and amount to be made
-// by owner from the transaction
-func (p *PaymentTx) AddFee(amount uint64, curr string) error {
-	if !common.IsHexAddress(curr) {
-		return fmt.Errorf("Fee currency is not a valid address")
+func AddFee(amount uint64, curr common.Address) PaymentOption {
+	return func(c *CreateTransaction) {
+		c.Fee = Fee{Amount:amount, Currency: curr}
 	}
-	p.CreateTransaction.Fee = Fee{Amount: amount, Currency: common.HexToAddress(curr)}
-	return nil
 }
 
-// AddMetadata adds a hex encoded metadata to the
-// transaction
-func (p *PaymentTx) AddMetadata(m string) error {
-	if len(m) != 66 {
-		return fmt.Errorf("invalid length metadata, got %v, wanted %v", len(m), 66)
+func AddPayment(amount uint64, addr, curr common.Address) PaymentOption {
+	return func(c *CreateTransaction) {
+		payment := Payment{
+			Amount: amount,
+			Currency: curr,
+			Owner: addr,
+		}
+		c.Payments = append(c.Payments, payment)
 	}
-	p.CreateTransaction.Metadata = m
-	return nil
 }
 
-// AddPayment add a payment output to be made to
-// a transaction
-func (p *PaymentTx) AddPayment(amount uint64, addr string, curr string) error {
-	if !common.IsHexAddress(addr) {
-		return fmt.Errorf("Recipient is not a valid address")
+func AddMetadata(m string) PaymentOption {
+	return func(c *CreateTransaction) {
+		c.Metadata = m
 	}
-
-	if !common.IsHexAddress(curr) {
-		return fmt.Errorf("Payment currency is not a valid address")
-	}
-	payment := Payment{Amount: amount, Currency: common.HexToAddress(curr), Owner: common.HexToAddress(addr)}
-	if len(p.CreateTransaction.Payments) == MaxOutputs {
-		return fmt.Errorf("error too many payments, max outputs are %v", MaxOutputs)
-	}
-	p.CreateTransaction.Payments = append(p.CreateTransaction.Payments, payment)
-	return nil
 }
+
+// // NewPaymentTx nitialize a simple payment transaction
+// // with zero ETH fee and empty metadata as a default value
+// func (c *Client) NewPaymentTx() (p *PaymentTx) {
+// 	p = &PaymentTx{Client: c}
+// 	p.AddFee(0, EthCurrency)
+// 	p.AddMetadata(DefaultMetadata)
+// 	return p
+// }
+
+// // AddOwner adds an owner address to payment tx
+// func (p *PaymentTx) AddOwner(o string) error {
+// 	if !common.IsHexAddress(o) {
+// 		return fmt.Errorf("Owner is not a valid address")
+// 	}
+// 	p.CreateTransaction.Owner = common.HexToAddress(o)
+// 	return nil
+// }
+
+// // AddFee adds a fee currency and amount to be made
+// // by owner from the transaction
+// func (p *PaymentTx) AddFee(amount uint64, curr string) error {
+// 	if !common.IsHexAddress(curr) {
+// 		return fmt.Errorf("Fee currency is not a valid address")
+// 	}
+// 	p.CreateTransaction.Fee = Fee{Amount: amount, Currency: common.HexToAddress(curr)}
+// 	return nil
+// }
+
+// // AddMetadata adds a hex encoded metadata to the
+// // transaction
+// func (p *PaymentTx) AddMetadata(m string) error {
+// 	if len(m) != 66 {
+// 		return fmt.Errorf("invalid length metadata, got %v, wanted %v", len(m), 66)
+// 	}
+// 	p.CreateTransaction.Metadata = m
+// 	return nil
+// }
+
+// // AddPayment add a payment output to be made to
+// // a transaction
+// func (p *PaymentTx) AddPayment(amount uint64, addr string, curr string) error {
+// 	if !common.IsHexAddress(addr) {
+// 		return fmt.Errorf("Recipient is not a valid address")
+// 	}
+
+// 	if !common.IsHexAddress(curr) {
+// 		return fmt.Errorf("Payment currency is not a valid address")
+// 	}
+// 	payment := Payment{Amount: amount, Currency: common.HexToAddress(curr), Owner: common.HexToAddress(addr)}
+// 	if len(p.CreateTransaction.Payments) == MaxOutputs {
+// 		return fmt.Errorf("error too many payments, max outputs are %v", MaxOutputs)
+// 	}
+// 	p.CreateTransaction.Payments = append(p.CreateTransaction.Payments, payment)
+// 	return nil
+// }
 
 // BuildTransaction forms a transaction to be signed via transaction.create endpoint
 // NOTE: if response.Data.Result == "intermediate"

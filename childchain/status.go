@@ -20,13 +20,20 @@ import (
 
 // WatcherStatus is a returned response from
 // calling status.get
+type ContractAddr struct {
+	Erc20Vault      string `json:"erc20_vault"`
+	EthVault        string `json:"eth_vault"`
+	PaymentExitGame string `json:"payment_exit_game"`
+	PlasmaFramework string `json:"plasma_framework"`
+}
+
 type WatcherStatus struct {
 	Data struct {
 		ByzantineEvents []struct {
 			Event   string                 `json:"event"`
 			Details map[string]interface{} `json:"details"`
 		} `json:"byzantine_events"`
-		ContractAddr  string `json:"contract_addr"`
+		ContractAddr  ContractAddr `json:"contract_addr"`
 		EthSyncing    bool   `json:"eth_syncing"`
 		InFlightExits []struct {
 			EthHeight          int           `json:"eth_height"`

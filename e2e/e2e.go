@@ -28,7 +28,7 @@ import (
 
 type TestEnv struct {
 	Watcher, Privatekey, Publickey, EthClient, EthVault, ExitGame, PlasmaFramework string
-	UtxoPos, DepositAmount, ExitToProcess, BlockTime, BlockConfirmation int
+	UtxoPos, DepositAmount, PaymentAmount, ExitToProcess, BlockTime, BlockConfirmation int
 
 }
 
@@ -56,6 +56,7 @@ func loadTestEnv() (*TestEnv, error){
 		PlasmaFramework: os.Getenv("PLASMA_FRAMEWORK_CONTRACT"),
 		UtxoPos: getEnvAsInt("UTXO_POS_FOR_EXIT", 1),
 		DepositAmount: getEnvAsInt("DEPOSIT_AMOUNT",1),
+		PaymentAmount: getEnvAsInt("PAYMENT_AMOUNT",1),
 		BlockTime: getEnvAsInt("BLOCK_TIME", 12),
 		BlockConfirmation: getEnvAsInt("BLOCK_CONFIRMATION", 7),
 		ExitToProcess: getEnvAsInt("EXIT_TO_PROCESS",1),

@@ -144,7 +144,6 @@ func TestStartStandardExit(t *testing.T){
 	if err != nil {t.Errorf("error submiting transaction for exit =: %v", err)}
 
 	res := tx.Hash().Hex()
-	fmt.Printf("%v", res)
 	fmt.Printf("standard exit tx hash: %s \n", res)
 	sleep(t)
 	status := checkReceipt(res, t)
@@ -163,7 +162,7 @@ func TestProcessExit(t *testing.T) {
 	client, _ := ethclient.Dial(env.EthClient)
 	rc := rootchain.NewClient(client)
 	vaultID := "1"
-	numberOfExits := "1"
+	numberOfExits := "2"
 	topExit := "0"
 	token := common.HexToAddress(util.EthCurrency)
 	petx := rc.NewProcessExit(
@@ -200,4 +199,33 @@ func TestProcessExit(t *testing.T) {
 }
 
 
+func TestPaymentTransaction(t *testing.T) {
+	env, err := loadTestEnv()
+	if err != nil {
+		t.Errorf("error loading test env in standard exit test: %v", err)
+	}
+	chch, err := childchain.NewClient(env.Watcher, &http.Client{})
+	if err != nil {
+		t.Errorf("unexpected error from creating new client: %v", err)
+	}
+	ptx := chch.NewPaymentTx(
+		childchain.AddOwner(common.HexToAddress(util.DeriveAddress(env.Privatekey))),
+		childchain.AddPayment(uint64( env.PaymentAmount ), common.HexToAddress( env.Publickey ), common.HexToAddress( childchain.EthCurrency )),
+		childchain.AddMetadata(childchain.DefaultMetadata),
+		childchain.AddFee(0, common.HexToAddress( childchain.EthCurrency )),
+	)
+
+	if err = childchain.BuildTransaction(ptx); err != nil {
+		t.Errorf("unexpected error : %v", err)
+	}
+	_, err = childchain.SignTransaction(ptx, childchain.SignWithRawKeys(env.Privatekey))
+	if err != nil {
+		t.Errorf("unexpected error : %v", err)
+	}
+	res, err := childchain.SubmitTransaction(ptx)
+	if err != nil {
+		t.Errorf("unexpected error : %v", err)
+	}
+	fmt.Printf("txhash: %v \n", res)
+}
 

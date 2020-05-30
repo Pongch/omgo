@@ -37,11 +37,12 @@ func TestBuildPaymentTx(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error from creating new client: %v", err)
 	}
-	paymenttx := chch.NewPaymentTx()
-	paymenttx.AddOwner("0xb3256026863eb6ae5b06fa396ab09069784ea8ea")
-	paymenttx.AddFee(5, EthCurrency)
-	paymenttx.AddMetadata(DefaultMetadata)
-	paymenttx.AddPayment(100, "0xb3256026863eb6ae5b06fa396ab09069784ea8ea", EthCurrency)
+	paymenttx := chch.NewPaymentTx(
+		AddOwner("0xb3256026863eb6ae5b06fa396ab09069784ea8ea"),
+		AddFee(5, EthCurrency),
+		AddMetadata(DefaultMetadata),
+		AddPayment(100, "0xb3256026863eb6ae5b06fa396ab09069784ea8ea", EthCurrency),
+	)
 	err = paymenttx.BuildTransaction()
 	response := paymenttx.CreateTransactionResponse.Data
 	if err != nil {

@@ -18,9 +18,16 @@ import (
 	"net/http"
 
 	"github.com/omisego/plasma-cli/childchain"
-	"github.com/omisego/plasma-cli/plasma"
+	"github.com/omisego/plasma-cli/rootchain"
 	"github.com/omisego/plasma-cli/util"
 	log "github.com/sirupsen/logrus"
+	"strconv"
+	"context"
+	"math/big"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/crypto"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -41,7 +48,7 @@ var (
 	privateKey      = deposit.Flag("privatekey", "Private key of the account used to send funds into Plasma MoreVP").Required().String()
 	client          = deposit.Flag("client", "Address of the Ethereum client. Infura and local node supported https://rinkeby.infura.io/v3/api_key or http://localhost:8545").Required().String()
 	contract        = deposit.Flag("contract", "Address of the Plasma MoreVP smart contract").Required().String()
-	depositAmount   = deposit.Flag("amount", "Amount to deposit in wei").Required().Uint64()
+	depositAmount   = deposit.Flag("amount", "Amount to deposit in wei").Required().Int()
 	depositCurrency = deposit.Flag("currency", "ERC20 token address for the deposit, leave blank for ETH").Default(childchain.EthCurrency).String()
 
 
@@ -64,19 +71,19 @@ var (
 
 	process           = kingpin.Command("process", "Process all exits that have completed the challenge period")
 	processContract   = process.Flag("contract", "Address of the Plasma MoreVP smart contract").Required().String()
-	processToken      = process.Flag("token", "Token address to process for standard exits").Required().String()
+	// processToken      = process.Flag("token", "Token address to process for standard exits").Required().String()
 	processPrivateKey = process.Flag("privatekey", "Private key used to fund the gas for the smart contract call").Required().String()
 	processExitClient = process.Flag("client", "Address of the Ethereum client. Infura and local node supported https://rinkeby.infura.io/v3/api_key or http://localhost:8545").Required().String()
 
 	create        = kingpin.Command("create", "Create a resource.")
 	createAccount = create.Command("account", "Create an account consisting of Public and Private key")
 
-	challengeexit  = kingpin.Command("challenge exit", "Challenge an invalid exit on the root chain")
-	ceContract     = challengeexit.Flag("contract", "Address of the Plasma MoreVP smart contract").Required().String()
-	ceClient       = challengeexit.Flag("client", "Address of the Ethereum client. Infura and local node supported https://rinkeby.infura.io/v3/api_key or http://localhost:8545").Required().String()
-	cePrivateKey   = challengeexit.Flag("privatekey", "Private key used to fund the gas for the smart contract call").Required().String()
-	ceUTXOPosition = challengeexit.Flag("utxo", "the UTXO to call challenge exit").Required().String()
-	ceWatcherURL   = challengeexit.Flag("watcher", "FQDN of the Watcher in the format http://watcher.path.net").Required().String()
+	// challengeexit  = kingpin.Command("challenge exit", "Challenge an invalid exit on the root chain")
+	// ceContract     = challengeexit.Flag("contract", "Address of the Plasma MoreVP smart contract").Required().String()
+	// ceClient       = challengeexit.Flag("client", "Address of the Ethereum client. Infura and local node supported https://rinkeby.infura.io/v3/api_key or http://localhost:8545").Required().String()
+	// cePrivateKey   = challengeexit.Flag("privatekey", "Private key used to fund the gas for the smart contract call").Required().String()
+	// ceUTXOPosition = challengeexit.Flag("utxo", "the UTXO to call challenge exit").Required().String()
+	// ceWatcherURL   = challengeexit.Flag("watcher", "FQDN of the Watcher in the format http://watcher.path.net").Required().String()
 )
 
 func ParseArgs() {
@@ -119,13 +126,41 @@ func ParseArgs() {
 		}
 	case deposit.FullCommand():
 		//plasma_cli deposit --privatekey=0x944A81BeECac91802787fBCFB9767FCBf81db1f5 --client=https://rinkeby.infura.io/v3/api_key --contract=0x457e2ec4ad356d3cb449e3bd4ba640d720c30377 --currency=ETH
-		c := plasma.Deposit{PrivateKey: *privateKey, Client: *client, Contract: *contract, Amount: *depositAmount, Owner: util.DeriveAddress(*privateKey), Currency: *depositCurrency}
-		res, err := c.DepositEth()
+		// c := plasma.Deposit{PrivateKey: *privateKey, Client: *client, Contract: *contract, Amount: *depositAmount, Owner: util.DeriveAddress(*privateKey), Currency: *depositCurrency}
+		// res, err := c.DepositEth()
+		// if err != nil {
+		// 	log.Error(err)
+		// } else {
+		// 	DisplayEthTransaction("Deposit successful, txhash: ", res)
+		// }
+		client, err := ethclient.Dial(*client)
 		if err != nil {
-			log.Error(err)
-		} else {
-			DisplayEthTransaction("Deposit successful, txhash: ", res)
+			log.Errorf("error initializing Ethereum client for deposit, %v", err)
 		}
+		rc := rootchain.NewClient(client)
+
+		depositTx := rc.NewDeposit(common.HexToAddress(*contract), common.HexToAddress(util.DeriveAddress(*privateKey)), common.HexToAddress(*depositCurrency), strconv.Itoa(*depositAmount))
+		privatekey, err := crypto.HexToECDSA(util.FilterZeroX(*privateKey))
+		if err != nil {
+			log.Errorf("bad privatekey: %v", err)
+		}
+		gasPrice, _ := client.SuggestGasPrice(context.Background())
+		txopts := bind.NewKeyedTransactor(privatekey)
+		txopts.From = common.HexToAddress(util.DeriveAddress(*privateKey))
+		txopts.GasLimit = 2000000
+		txopts.Value = big.NewInt(int64(*depositAmount))
+		txopts.GasPrice = gasPrice
+		if err := rootchain.Options(depositTx, txopts); err != nil {
+			log.Errorf("transaction options invalid, %v", err)
+		}
+		if err := rootchain.Build(depositTx); err != nil {
+			log.Errorf("deposit build error, %v", err)
+		}
+		tx, err := rootchain.Submit(depositTx)
+		if err != nil {log.Errorf("error submiting transaction for deposit =: %v", err)}
+
+		log.Infof("%v", tx.Hash().Hex())
+
 	case send.FullCommand():
 		chch, err := childchain.NewClient(*watcherSubmitURL, &http.Client{})
 		if err != nil {
@@ -174,14 +209,98 @@ func ParseArgs() {
 		DisplayGetResponse(gtx)
 	case exit.FullCommand():
 		//plasma_cli exit --utxo=1000000000 --privatekey=foo --contract=0x5bb7f2492487556e380e0bf960510277cdafd680 --watcher=ari.omg.network
-		s := plasma.StandardExit{UtxoPosition: util.ConvertStringToInt(*utxoPosition), Contract: *contractExit, PrivateKey: *exitPrivateKey, Client: *clientExit}
-		log.Info("Attempting to exit UTXO ", *utxoPosition)
-		s.StartStandardExit(*watcherExitURL)
+		// s := plasma.StandardExit{UtxoPosition: util.ConvertStringToInt(*utxoPosition), Contract: *contractExit, PrivateKey: *exitPrivateKey, Client: *clientExit}
+		// log.Info("Attempting to exit UTXO ", *utxoPosition)
+		// s.StartStandardExit(*watcherExitURL)
+		client, err := ethclient.Dial(*clientExit)
+		rc := rootchain.NewClient(client)
+		ste := rc.NewStandardExit(common.HexToAddress(*contractExit))
+		c := &bind.CallOpts{}
+		bondsize, err := ste.GetStandardExitBond(c)
+		if err != nil {
+			log.Errorf("could not get exit bond: %v", err)
+		}
+		gasPrice, _ := client.SuggestGasPrice(context.Background())
+		privateKey, err := crypto.HexToECDSA(util.FilterZeroX(*exitPrivateKey))
+		txopts := bind.NewKeyedTransactor(privateKey)
+		txopts.From = common.HexToAddress(util.DeriveAddress(*exitPrivateKey))
+		txopts.GasLimit = 2000000
+		txopts.Value = bondsize
+		txopts.GasPrice = gasPrice
+
+		//fetches UTXO
+		// ch, err := childchain.NewClient(*watcherExitURL, &http.Client{})
+		// if err != nil {
+		// 	log.Errorf("failed to start client: %v", err)
+		// }
+		// utxos, err := ch.GetUTXOsFromAddress(util.DeriveAddress(*exitPrivateKey))
+		// if err != nil {
+		// 	log.Errorf("error fetching utxos, %v", err)
+		// }
+		// fetches the first UTXO we find
+		utxo, err := strconv.ParseInt(*utxoPosition, 10, 0)
+		if err != nil {
+			log.Errorf("issue parseing utxo position %v", err)
+		}
+		ed, err := rootchain.GetUTXOExitData(*watcherExitURL, int(utxo))
+		if err != nil {
+			log.Errorf("unexpected error from getting UTXO exit data %v", err)
+		}
+
+		if err := ste.Utxo(ed); err != nil {
+			log.Errorf("error setting data for childchain transaction")
+		}
+		if err := rootchain.Options(ste, txopts); err != nil {
+			log.Errorf("transaction options invalid, %v", err)
+		}
+		if err := rootchain.Build(ste); err != nil {
+			log.Errorf("exit build error, %v", err)
+		}
+		tx, err := rootchain.Submit(ste)
+		if err != nil {log.Errorf("error submiting transaction for exit =: %v", err)}
+
+		res := tx.Hash().Hex()
+		log.Printf("%v", res)
+		log.Printf("standard exit tx hash: %s \n", res)
+
 	case process.FullCommand():
 		//plasma_cli process --contract=0x5bb7f2492487556e380e0bf960510277cdafd680 --token 0x0 --privatekey=foo --client=https://rinkeby.infura.io/v3/api_key
-		p := plasma.ProcessExit{Contract: *processContract, PrivateKey: *processPrivateKey, Token: *processToken, Client: *processExitClient}
-		log.Info("Calling process exits in the Plasma contract")
-		plasma.ProcessExits(1,1, p)
+		// p := plasma.ProcessExit{Contract: *processContract, PrivateKey: *processPrivateKey, Token: *processToken, Client: *processExitClient}
+		// log.Info("Calling process exits in the Plasma contract")
+		// plasma.ProcessExits(1,1, p)
+		client, _ := ethclient.Dial(*processExitClient)
+		rc := rootchain.NewClient(client)
+		vaultID := "1"
+		numberOfExits := "1"
+		topExit := "0"
+		token := common.HexToAddress(util.EthCurrency)
+		petx := rc.NewProcessExit(
+			rootchain.PlasmaAddress(common.HexToAddress(*processContract)),
+			rootchain.TokenAddress(token),
+			rootchain.VaultId(vaultID),
+			rootchain.TopExit(topExit),
+			rootchain.NumberOfExits(numberOfExits),
+		)
+		gasPrice, _ := client.SuggestGasPrice(context.Background())
+		privateKey, err := crypto.HexToECDSA(util.FilterZeroX(*processPrivateKey))
+		txopts := bind.NewKeyedTransactor(privateKey)
+		txopts.From = common.HexToAddress(util.DeriveAddress(*processPrivateKey))
+		txopts.GasLimit = 2000000
+		txopts.GasPrice = gasPrice
+
+		if err := rootchain.Options(petx, txopts); err != nil {
+			log.Errorf("transaction options invalid, %v", err)
+		}
+
+		if err := rootchain.Build(petx); err != nil {
+			log.Errorf("error building process exit transaction: %v \n", err)
+		}
+		tx, err := rootchain.Submit(petx)
+		if err != nil {log.Errorf("error submiting transaction for process exit =: %v", err)}
+		res := tx.Hash().Hex()
+
+		log.Printf("process exit tx hash: %s \n", res)
+
 	case createAccount.FullCommand():
 		//plasma_cli create account
 		log.Info("Generating Keypair")
@@ -198,13 +317,13 @@ func ParseArgs() {
 			log.Error(err)
 		}
 		log.Info("UTXO Position: ", exitData.Data.UtxoPos, " Proof: ", exitData.Data.Proof)
-	case challengeexit.FullCommand():
-		//plasma_cli challengeexit --contract="" --client="" --privatekey="" --utxo="" --watcher=""
-		challengeData, err := plasma.GetChallengeData(*ceWatcherURL, util.ConvertStringToInt(*ceUTXOPosition))
-		log.Info(challengeData)
-		if err != nil {
-			log.Fatalf("got error retrieving challenge data %v", err)
-		}
-		challengeData.ChallengeInvalidExit(*ceClient, *ceContract, *cePrivateKey)
+	// case challengeexit.FullCommand():
+	// 	//plasma_cli challengeexit --contract="" --client="" --privatekey="" --utxo="" --watcher=""
+	// 	challengeData, err := plasma.GetChallengeData(*ceWatcherURL, util.ConvertStringToInt(*ceUTXOPosition))
+	// 	log.Info(challengeData)
+	// 	if err != nil {
+	// 		log.Fatalf("got error retrieving challenge data %v", err)
+	// 	}
+	// 	challengeData.ChallengeInvalidExit(*ceClient, *ceContract, *cePrivateKey)
 	}
 }
