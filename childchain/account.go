@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/omisego/plasma-cli/util"
+	"github.com/pongch/omgo/util"
 	log "github.com/sirupsen/logrus"
 )
 

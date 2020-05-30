@@ -23,7 +23,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/omisego/plasma-cli/util"
+	"github.com/pongch/omgo/util"
 )
 
 // Mock test server

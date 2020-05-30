@@ -28,8 +28,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/omisego/plasma-cli/abi"
-	"github.com/omisego/plasma-cli/util"
+	"github.com/pongch/omgo/abi"
+	"github.com/pongch/omgo/util"
 	log "github.com/sirupsen/logrus"
 )
 

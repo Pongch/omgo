@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package parser
+package main
 
 import (
 	"net/http"
 
-	"github.com/omisego/plasma-cli/childchain"
-	"github.com/omisego/plasma-cli/rootchain"
-	"github.com/omisego/plasma-cli/util"
+	"github.com/pongch/omgo/childchain"
+	"github.com/pongch/omgo/rootchain"
+	"github.com/pongch/omgo/util"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"context"
