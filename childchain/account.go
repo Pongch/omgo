@@ -20,7 +20,6 @@ import (
 	"math/big"
 
 	"github.com/pongch/omgo/util"
-	log "github.com/sirupsen/logrus"
 )
 
 // WatcherUTXOsFromAddress is a returned response from
@@ -56,7 +55,7 @@ func (c *Client) GetUTXOsFromAddress(address string) (*WatcherUTXOsFromAddress, 
 	if util.ValidateHex(address) != nil {
 		return nil, fmt.Errorf("error validating address in GetUTXOsFromAddress(): %v", util.ValidateHex(address))
 	}
-	postData := map[string]interface{}{"address": address, "limit": "10000"}
+	postData := map[string]interface{}{"address": address}
 	rstring, err := c.do(
 		"/account.get_utxos",
 		postData,
@@ -83,7 +82,6 @@ func (c *Client) GetBalance(address string) (*WatcherBalanceFromAddress, error) 
 	response := WatcherBalanceFromAddress{}
 	jsonErr := json.Unmarshal([]byte(rstring), &response)
 	if jsonErr != nil {
-		log.Warning("Could not unmarshal successful response from the Watcher")
 		var errorInfo ClientError
 		processError := json.Unmarshal([]byte(rstring), &errorInfo)
 		if processError != nil { // Response from the Watcher does not match a struct

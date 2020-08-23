@@ -44,9 +44,9 @@ type Transactions struct {
 }
 
 type Inputs struct {
-	Blknum   int         `json:"blknum"`
-	Txindex  int         `json:"txindex"`
-	Oindex   int         `json:"oindex"`
+	Blknum   json.Number         `json:"blknum"`
+	Txindex  json.Number         `json:"txindex"`
+	Oindex   json.Number         `json:"oindex"`
 	UtxoPos  *big.Int    `json:"utxo_pos"`
 	Owner    string      `json:"owner"`
 	Currency string      `json:"currency"`
@@ -109,24 +109,24 @@ type Output struct {
 	Type string `json:"type"`
 }
 type Input0 struct {
-	Blknum  int `json:"blknum"`
-	Txindex int `json:"txindex"`
-	Oindex  int `json:"oindex"`
+	Blknum  json.Number `json:"blknum"`
+	Txindex json.Number `json:"txindex"`
+	Oindex  json.Number `json:"oindex"`
 }
 type Input1 struct {
-	Blknum  int `json:"blknum"`
-	Txindex int `json:"txindex"`
-	Oindex  int `json:"oindex"`
+	Blknum  json.Number `json:"blknum"`
+	Txindex json.Number `json:"txindex"`
+	Oindex  json.Number `json:"oindex"`
 }
 type Input2 struct {
-	Blknum  int `json:"blknum"`
-	Txindex int `json:"txindex"`
-	Oindex  int `json:"oindex"`
+	Blknum  json.Number `json:"blknum"`
+	Txindex json.Number `json:"txindex"`
+	Oindex  json.Number `json:"oindex"`
 }
 type Input3 struct {
-	Blknum  int `json:"blknum"`
-	Txindex int `json:"txindex"`
-	Oindex  int `json:"oindex"`
+	Blknum  json.Number `json:"blknum"`
+	Txindex json.Number `json:"txindex"`
+	Oindex  json.Number `json:"oindex"`
 }
 type Output0 struct {
 	Owner    string      `json:"owner"`

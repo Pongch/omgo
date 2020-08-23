@@ -36,20 +36,20 @@ type WatcherStatus struct {
 		ContractAddr  ContractAddr `json:"contract_addr"`
 		EthSyncing    bool   `json:"eth_syncing"`
 		InFlightExits []struct {
-			EthHeight          int           `json:"eth_height"`
+			EthHeight          json.Number           `json:"eth_height"`
 			PiggybackedInputs  []interface{} `json:"piggybacked_inputs"`
 			PiggybackedOutputs []interface{} `json:"piggybacked_outputs"`
 			Txbytes            string        `json:"txbytes"`
 			Txhash             string        `json:"txhash"`
 		} `json:"in_flight_exits"`
-		LastMinedChildBlockNumber        int `json:"last_mined_child_block_number"`
-		LastMinedChildBlockTimestamp     int `json:"last_mined_child_block_timestamp"`
-		LastSeenEthBlockNumber           int `json:"last_seen_eth_block_number"`
-		LastSeenEthBlockTimestamp        int `json:"last_seen_eth_block_timestamp"`
-		LastValidatedChildBlockNumber    int `json:"last_validated_child_block_number"`
-		LastValidatedChildBlockTimestamp int `json:"last_validated_child_block_timestamp"`
+		LastMinedChildBlockNumber        json.Number `json:"last_mined_child_block_number"`
+		LastMinedChildBlockTimestamp     json.Number `json:"last_mined_child_block_timestamp"`
+		LastSeenEthBlockNumber           json.Number `json:"last_seen_eth_block_number"`
+		LastSeenEthBlockTimestamp        json.Number `json:"last_seen_eth_block_timestamp"`
+		LastValidatedChildBlockNumber    json.Number `json:"last_validated_child_block_number"`
+		LastValidatedChildBlockTimestamp json.Number `json:"last_validated_child_block_timestamp"`
 		ServicesSyncedHeights            []struct {
-			Height  int    `json:"height"`
+			Height  json.Number    `json:"height"`
 			Service string `json:"service"`
 		} `json:"services_synced_heights"`
 	} `json:"data"`

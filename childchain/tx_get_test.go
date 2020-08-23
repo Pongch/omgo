@@ -16,6 +16,8 @@ package childchain
 import (
 	"net/http"
 	"testing"
+	"encoding/json"
+	"strconv"
 )
 
 func TestGetTransaction(t *testing.T) {
@@ -31,11 +33,11 @@ func TestGetTransaction(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error from transaction.get: %v", err)
 	}
-	if balance.Data.Txindex != 5113 {
+	if balance.Data.Txindex != json.Number(strconv.Itoa(5113)) {
 		t.Errorf("unexpected txindex returned, expecting %v, got %v", 5113, balance.Data.Txindex)
 	}
 
-	if balance.Data.Block.Blknum != 68290000 {
+	if balance.Data.Block.Blknum != json.Number(strconv.Itoa(68290000)) {
 		t.Errorf("unexpected blknum returned, expecting %v, got %v", 68290000, balance.Data.Block.Blknum)
 	}
 }

@@ -91,6 +91,7 @@ func TestGetStandardExitBond(t *testing.T) {
 	fmt.Printf("exit bond: %v \n", res)
 }
 
+
 func TestStartStandardExit(t *testing.T){
 	env, err := loadTestEnv()
 	if err != nil {
@@ -122,6 +123,7 @@ func TestStartStandardExit(t *testing.T){
 	if err != nil {
 		t.Errorf("error fetching utxos, %v", err)
 	}
+	t.Errorf("%v", err)
 	// fetches the first UTXO we find
 	utxo, err := strconv.ParseInt(utxos.Data[0].UtxoPos.String(), 10, 0)
 	if err != nil {
@@ -211,7 +213,7 @@ func TestPaymentTransaction(t *testing.T) {
 	}
 	ptx := chch.NewPaymentTx(
 		childchain.AddOwner(common.HexToAddress(util.DeriveAddress(env.Privatekey))),
-		childchain.AddPayment(env.PaymentAmount, common.HexToAddress( env.Publickey ), common.HexToAddress( childchain.EthCurrency )),
+		childchain.AddPayment(env.PaymentAmount, common.HexToAddress("0xedcf990e493f271020f3a2b2d6f17962683b2c45"), common.HexToAddress( childchain.EthCurrency )),
 		childchain.AddMetadata(childchain.DefaultMetadata),
 		childchain.AddFee(common.HexToAddress( childchain.EthCurrency )),
 	)

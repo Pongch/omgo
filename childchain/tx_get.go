@@ -27,7 +27,7 @@ type TransactionGetResponse struct {
 }
 
 type GetTxData struct {
-	Txindex  int       `json:"txindex"`
+	Txindex  json.Number       `json:"txindex"`
 	Txhash   string    `json:"txhash"`
 	Metadata string    `json:"metadata"`
 	Txbytes  string    `json:"txbytes"`
@@ -37,10 +37,10 @@ type GetTxData struct {
 }
 
 type Block struct {
-	Timestamp int    `json:"timestamp"`
+	Timestamp json.Number    `json:"timestamp"`
 	Hash      string `json:"hash"`
-	EthHeight int    `json:"eth_height"`
-	Blknum    int    `json:"blknum"`
+	EthHeight json.Number    `json:"eth_height"`
+	Blknum    json.Number    `json:"blknum"`
 }
 
 // GetTransaction fetches data about
