@@ -138,11 +138,12 @@ func convertStringToFloat64(value string) float64 {
 // Build a deposit transaction, in the current ALD implmentation, the encoded RLP transaction is dynamic.
 //The deposit transaction consists of empty inputs  and a single output UTXO
 //made up of a specified address, currency, value and transaction type 
+//TODO make this applicable for both ETH and ERC20
 
 func BuildRLPDeposit(address, currency common.Address, value, txtype uint64) ([]byte, error) {
 	deposit := DepositTransaction{OutputType: uint(txtype), TxData:uint(0), MetaData: common.HexToHash(DefaultMetadata)}
 	cur := currency
-	// create a single ownership output 
+	// create a single ownership output
 	ownership := DepositOutput{}
 	ownership.OutputData.OutputGuard = address
 	ownership.OutputData.Token = cur

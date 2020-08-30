@@ -54,6 +54,7 @@ type DepositBuilder  func(common.Address, common.Address, uint64, uint64) ([]byt
 // VaultBinder binds the go code to an Ethvault contract on the root chain
 // TODO implement vault binder for ERC20
 type VaultBinder func(common.Address, bind.ContractBackend) (*abi.Ethvault, error) 
+type Erc20VaultBinder func(common.Address, bind.ContractBackend) (*abi.Erc20vault, error) 
 
 // DepositTransaction is a collection of functions and data needed to make a deposit transaction on the root chain
 type DepositTransaction struct {
@@ -64,6 +65,7 @@ type DepositTransaction struct {
 	Owner common.Address
 	Currency common.Address
 	VaultBinder VaultBinder
+	Erc20VaultBinder Erc20VaultBinder
 	Builder DepositBuilder
 	RlpTransaction []byte
 }
@@ -106,6 +108,18 @@ type ProcessExitOptions struct {
 
 //  ProcessExitOption is a functional option that performs an operation on ProcessExitOptions
 type ProcessExitOption func(*ProcessExitOptions)
+
+// ERC20Transaction is a collection of functions and data needed to approve ERC20 tokens to be spendable
+type ApproveTransaction struct {
+	*bind.TransactOpts
+	bind.ContractBackend
+	Erc20Binder Erc20Binder
+	Erc20Address common.Address
+	PlasmaVault common.Address
+	Amount *big.Int
+}
+
+type Erc20Binder func(common.Address, bind.ContractBackend) (*abi.Erc20, error)
 
 // StandardExitUTXOData is a returned data from calling /utxo.get_exit_data from the watcher, the data is required to start a standard exit on the utxo
 type StandardExitUTXOData struct {
@@ -168,6 +182,7 @@ func (c *Client) NewDeposit(vaultAddress, owner, currency common.Address, amount
 		ContractBackend: c.ContractBackend,
 		VaultAddress: vaultAddress,
 		VaultBinder: abi.NewEthvault,
+		Erc20VaultBinder: abi.NewErc20vault,
 		Amount: amount,
 		Owner: owner,
 		Builder: util.BuildRLPDeposit,
@@ -189,6 +204,7 @@ func (d *DepositTransaction) Build() error {
 	if err != nil {
 		return err
 	}
+	//must supports erc20 vault if currency is not ETH
 	rlpencoded, err := d.Builder(
 		d.Owner,
 		d.Currency,
@@ -204,13 +220,26 @@ func (d *DepositTransaction) Build() error {
 
 // Submit is a method on DepositTransaction that calls a deposit on the root chain vault
 func (d *DepositTransaction) Submit() (*types.Transaction, error) {
-	instance, err := d.VaultBinder(d.VaultAddress, d.ContractBackend)
-	if err != nil {
-		return nil, err
-	}
-	res, err := instance.Deposit(d.TransactOpts, d.RlpTransaction)
-	if err != nil {
-		return nil, err
+	var res *types.Transaction
+	if d.Currency == common.HexToAddress(util.EthCurrency) {
+		instance, err := d.VaultBinder(d.VaultAddress, d.ContractBackend)
+		if err != nil {
+			return nil, err
+		}
+		res, err = instance.Deposit(d.TransactOpts, d.RlpTransaction)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		instance, err := d.Erc20VaultBinder(d.VaultAddress, d.ContractBackend)
+		if err != nil {
+			return nil, err
+		}
+		res, err = instance.Deposit(d.TransactOpts, d.RlpTransaction)
+		if err != nil {
+			return nil, err
+		}
+
 	}
 	return res, nil
 }
@@ -376,6 +405,44 @@ func (p *ProcessExitTransaction) Submit() (*types.Transaction, error) {
 	}
 	return tx, nil
 }
+
+func (c *Client) NewApprove(vaultAddress, erc20Address common.Address, amount *big.Int) *ApproveTransaction {
+	return &ApproveTransaction{
+		ContractBackend: c.ContractBackend,
+		Erc20Address: erc20Address,
+		Erc20Binder: abi.NewErc20,
+		PlasmaVault: vaultAddress,
+		Amount: amount,
+	}
+}
+
+// ERC20 token approve transaction
+func (a *ApproveTransaction) Options(t *bind.TransactOpts) error {
+	a.TransactOpts = t
+	return nil
+}
+
+func (a *ApproveTransaction) Build() error {
+	//TODO validation
+	return nil
+}
+
+func (a *ApproveTransaction) Submit() (*types.Transaction, error) {
+	instance, err := a.Erc20Binder(a.Erc20Address, a.ContractBackend)
+	if err != nil {
+		return nil, err
+	}
+	tx, err := instance.Approve(
+		a.TransactOpts,
+		a.PlasmaVault,
+		a.Amount,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
 
 // Options is a wrapper function that takes any transaction that satisfies RootchainTransaction interface and dispatch Opt on it
 func Options(rtx  RootchainTransaction, t *bind.TransactOpts) error {
