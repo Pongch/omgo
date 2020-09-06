@@ -208,63 +208,36 @@ func TestErc20Approval(t *testing.T) {
 	}
 	client, _ := ethclient.Dial(env.EthClient)
 	rc := rootchain.NewClient(client)
-	// amount, _ := new(big.Int).SetString(env.DepositAmount, 0)
-	// approvalTx := rc.NewApprove(
-	// 	common.HexToAddress("0x18e15c2cdc003b845b056f8d6b6a91ab33d3f182"),
-	// 	common.HexToAddress("0x0a180a76e4466bf68a7f86fb029bed3cccfaaac5"),
-	// 	amount,
-	// )
-	// gasPrice, _ := client.SuggestGasPrice(context.Background())
-	// privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.Privatekey))
-	// txopts := bind.NewKeyedTransactor(privateKey)
-	// txopts.From = common.HexToAddress(util.DeriveAddress(env.Privatekey))
-	// txopts.GasLimit = 2000000
-	// txopts.GasPrice = gasPrice
-	// if err := rootchain.Options(approvalTx, txopts); err != nil {
-	// 	t.Errorf("transaction options invalid, %v", err)
-	// }
-	// if err := rootchain.Build(approvalTx); err != nil {
-	// 	t.Errorf("deposit build error, %v", err)
-	// }
-	// tx, err := rootchain.Submit(approvalTx)
-	// if err != nil {t.Errorf("error submiting transaction for token approval =: %v", err)}
-
-	// fmt.Printf("%v", tx.Hash().Hex())
-	// sleep(t)
-	// status := checkReceipt(tx.Hash().Hex(), t)
-	// if status == false {
-	// 	t.Error("transaction failed")
-	// }
-
-
-	// deposit erc20
-
-	depositTx := rc.NewDeposit(common.HexToAddress("0x18e15c2cdc003b845b056f8d6b6a91ab33d3f182"), common.HexToAddress(util.DeriveAddress(env.Privatekey)), common.HexToAddress("0x0a180a76e4466bf68a7f86fb029bed3cccfaaac5"), "100")
 	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.Privatekey))
 	if err != nil {
 		t.Errorf("bad privatekey: %v", err)
 	}
 	gasPrice, _ := client.SuggestGasPrice(context.Background())
-	txopts := bind.NewKeyedTransactor(privateKey)
-	txopts.From = common.HexToAddress(util.DeriveAddress(env.Privatekey))
-	txopts.GasLimit = 2000000
-	txopts.GasPrice = gasPrice
-	if err := rootchain.Options(depositTx, txopts); err != nil {
-		t.Errorf("transaction options invalid, %v", err)
-	}
-	if err := rootchain.Build(depositTx); err != nil {
-		t.Errorf("deposit build error, %v", err)
-	}
-	tx, err := rootchain.Submit(depositTx)
-	if err != nil {t.Errorf("error submiting transaction for deposit =: %v", err)}
-
-	fmt.Printf("%v", tx.Hash().Hex())
-	sleep(t)
-	status := checkReceipt(tx.Hash().Hex(), t)
-	if status == false {
-		t.Error("transaction failed")
-	}
-
+	      amount, _ := new(big.Int).SetString(env.DepositAmount, 0)
+	      approvalTx := rc.NewApprove(
+	      	common.HexToAddress("0x18e15c2cdc003b845b056f8d6b6a91ab33d3f182"),
+	      	common.HexToAddress("0x0a180a76e4466bf68a7f86fb029bed3cccfaaac5"),
+	      	amount,
+	      )
+	      gasPrice, _ = client.SuggestGasPrice(context.Background())
+	      txopts := bind.NewKeyedTransactor(privateKey)
+	      txopts.From = common.HexToAddress(util.DeriveAddress(env.Privatekey))
+	      txopts.GasLimit = 2000000
+	      txopts.GasPrice = gasPrice
+	      if err := rootchain.Options(approvalTx, txopts); err != nil {
+	      	t.Errorf("transaction options invalid, %v", err)
+	      }
+	      if err := rootchain.Build(approvalTx); err != nil {
+	      	t.Errorf("deposit build error, %v", err)
+	      }
+	      tx, err := rootchain.Submit(approvalTx)
+	      if err != nil {t.Errorf("error submiting transaction for token approval =: %v", err)}
+	      fmt.Printf("%v", tx.Hash().Hex())
+	      sleep(t)
+	      status := checkReceipt(tx.Hash().Hex(), t)
+	      if status == false {
+	      	t.Error("transaction failed")
+	      }
 }
 
 
