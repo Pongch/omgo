@@ -17,6 +17,7 @@ package childchain
 import (
 	"encoding/json"
 
+	"errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,20 +28,20 @@ type TransactionGetResponse struct {
 }
 
 type GetTxData struct {
-	Txindex  int       `json:"txindex"`
-	Txhash   string    `json:"txhash"`
-	Metadata string    `json:"metadata"`
-	Txbytes  string    `json:"txbytes"`
-	Block    Block     `json:"block"`
-	Inputs   []Inputs  `json:"inputs"`
-	Outputs  []Outputs `json:"outputs"`
+	Txindex  json.Number `json:"txindex"`
+	Txhash   string      `json:"txhash"`
+	Metadata string      `json:"metadata"`
+	Txbytes  string      `json:"txbytes"`
+	Block    Block       `json:"block"`
+	Inputs   []Inputs    `json:"inputs"`
+	Outputs  []Outputs   `json:"outputs"`
 }
 
 type Block struct {
-	Timestamp int    `json:"timestamp"`
-	Hash      string `json:"hash"`
-	EthHeight int    `json:"eth_height"`
-	Blknum    int    `json:"blknum"`
+	Timestamp json.Number `json:"timestamp"`
+	Hash      string      `json:"hash"`
+	EthHeight json.Number `json:"eth_height"`
+	Blknum    json.Number `json:"blknum"`
 }
 
 // GetTransaction fetches data about
@@ -48,6 +49,9 @@ type Block struct {
 // transaction.get endpoint
 func (c *Client) GetTransaction(txHash string) (*TransactionGetResponse, error) {
 	// client := &http.Client{}
+	if txHash == "" {
+		return nil, errors.New("transaction hash not found")
+	}
 	postData := map[string]interface{}{"id": txHash}
 	rstring, err := c.do(
 		"/transaction.get",

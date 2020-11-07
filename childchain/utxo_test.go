@@ -58,7 +58,8 @@ func TestGetChallengeData(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error from creating new client: %v", err)
 	}
-	res, err := chch.GetChallengeData(10000000010000000)
+	utxopos, _ := new(big.Int).SetString("10000000010000000", 10)
+	res, err := chch.GetChallengeData(utxopos)
 	if err != nil {
 		t.Errorf("unexpected error from getting challenge data: %v", err)
 	}

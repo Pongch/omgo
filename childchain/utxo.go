@@ -68,7 +68,7 @@ func (c *Client) GetUTXOExitData(utxoPosition int) (*StandardExitUTXOData, error
 // GetChallengeData from the watcher based on
 // UTXO position to be used in rootchain Challenge
 // function call
-func (c *Client) GetChallengeData(utxoPosition int) (*ChallengeUTXOData, error) {
+func (c *Client) GetChallengeData(utxoPosition *big.Int) (*ChallengeUTXOData, error) {
 	postData := map[string]interface{}{"utxo_pos": utxoPosition}
 	rstring, err := c.do(
 		"/utxo.get_challenge_data",

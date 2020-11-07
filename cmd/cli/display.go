@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package cli
 
 import (
 	"fmt"
@@ -142,4 +142,8 @@ func DisplayGetResponse(response *childchain.TransactionGetResponse) {
 	log.Infof("Block data: %v", fmt.Sprintf("%+v", response.Data.Block))
 	log.Infof("Inputs: %v", fmt.Sprintf("%+v", response.Data.Inputs))
 	log.Infof("Outputs: %v", fmt.Sprintf("%+v", response.Data.Outputs))
+}
+
+func DisplayExitData(response *childchain.StandardExitUTXOData) {
+	log.Info("UTXO Position: ", response.Data.UtxoPos, " Proof: ", response.Data.Proof)
 }

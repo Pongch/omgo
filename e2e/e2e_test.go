@@ -91,6 +91,7 @@ func TestGetStandardExitBond(t *testing.T) {
 	fmt.Printf("exit bond: %v \n", res)
 }
 
+
 func TestStartStandardExit(t *testing.T){
 	env, err := loadTestEnv()
 	if err != nil {
@@ -122,6 +123,7 @@ func TestStartStandardExit(t *testing.T){
 	if err != nil {
 		t.Errorf("error fetching utxos, %v", err)
 	}
+	t.Errorf("%v", err)
 	// fetches the first UTXO we find
 	utxo, err := strconv.ParseInt(utxos.Data[0].UtxoPos.String(), 10, 0)
 	if err != nil {
@@ -199,6 +201,45 @@ func TestProcessExit(t *testing.T) {
 	}
 }
 
+func TestErc20Approval(t *testing.T) {
+	env, err := loadTestEnv()
+	if err != nil {
+		t.Errorf("error loading test env in standard exit test: %v", err)
+	}
+	client, _ := ethclient.Dial(env.EthClient)
+	rc := rootchain.NewClient(client)
+	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.Privatekey))
+	if err != nil {
+		t.Errorf("bad privatekey: %v", err)
+	}
+	gasPrice, _ := client.SuggestGasPrice(context.Background())
+	      amount, _ := new(big.Int).SetString(env.DepositAmount, 0)
+	      approvalTx := rc.NewApprove(
+	      	common.HexToAddress("0x18e15c2cdc003b845b056f8d6b6a91ab33d3f182"),
+	      	common.HexToAddress("0x0a180a76e4466bf68a7f86fb029bed3cccfaaac5"),
+	      	amount,
+	      )
+	      gasPrice, _ = client.SuggestGasPrice(context.Background())
+	      txopts := bind.NewKeyedTransactor(privateKey)
+	      txopts.From = common.HexToAddress(util.DeriveAddress(env.Privatekey))
+	      txopts.GasLimit = 2000000
+	      txopts.GasPrice = gasPrice
+	      if err := rootchain.Options(approvalTx, txopts); err != nil {
+	      	t.Errorf("transaction options invalid, %v", err)
+	      }
+	      if err := rootchain.Build(approvalTx); err != nil {
+	      	t.Errorf("deposit build error, %v", err)
+	      }
+	      tx, err := rootchain.Submit(approvalTx)
+	      if err != nil {t.Errorf("error submiting transaction for token approval =: %v", err)}
+	      fmt.Printf("%v", tx.Hash().Hex())
+	      sleep(t)
+	      status := checkReceipt(tx.Hash().Hex(), t)
+	      if status == false {
+	      	t.Error("transaction failed")
+	      }
+}
+
 
 func TestPaymentTransaction(t *testing.T) {
 	env, err := loadTestEnv()
@@ -211,7 +252,7 @@ func TestPaymentTransaction(t *testing.T) {
 	}
 	ptx := chch.NewPaymentTx(
 		childchain.AddOwner(common.HexToAddress(util.DeriveAddress(env.Privatekey))),
-		childchain.AddPayment(env.PaymentAmount, common.HexToAddress( env.Publickey ), common.HexToAddress( childchain.EthCurrency )),
+		childchain.AddPayment(env.PaymentAmount, common.HexToAddress("0xedcf990e493f271020f3a2b2d6f17962683b2c45"), common.HexToAddress( childchain.EthCurrency )),
 		childchain.AddMetadata(childchain.DefaultMetadata),
 		childchain.AddFee(common.HexToAddress( childchain.EthCurrency )),
 	)

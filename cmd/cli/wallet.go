@@ -1,5 +1,3 @@
-package main
-
 //
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,16 +11,25 @@ package main
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+package cli
 
 import (
-	// "github.com/pongch/omgo/cli"
 	"github.com/pongch/omgo/util"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/alecthomas/kingpin.v2"
+	"strings"
 )
 
-func main() {
-	util.LogFormatter()
-	log.Info("Starting OMGO CLI")
-	ParseArgs()
-	// parser.ParseArgs()
+var (
+	create = kingpin.Command("create", "Create a resource.")
+	wallet = create.Command("keypair", "Create a test wallet consisting of Public and Private key")
+)
+
+func _createKeypair() error {
+	address, pkey, err := util.GenerateAccount()
+	if err != nil {
+		return err
+	}
+	log.Infof("\n Address: %s \n Privatekey: 0x%s ", address, strings.ToUpper(pkey))
+	return nil
 }

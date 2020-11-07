@@ -18,6 +18,7 @@ import (
 	"fmt"
 	// "math/big"
 
+	"encoding/json"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pongch/omgo/util"
 )
@@ -44,8 +45,8 @@ type TransactionSubmitResponse struct {
 	Version string `json:"version"`
 	Success bool   `json:"success"`
 	Data    struct {
-		Blknum      int    `json:"blknum"`
-		Txindex     int    `json:"txindex"`
+		Blknum      json.Number    `json:"blknum"`
+		Txindex     json.Number    `json:"txindex"`
 		Txhash      string `json:"txhash"`
 		Object      string `json:"object"`
 		Code        string `json:"code"`

@@ -178,9 +178,10 @@ func (p *PaymentTx) SignTransaction(signer SignerFunc) ([][]byte, error) {
 // buildTypedTransaction is a private function to
 // form the TypedTransaction to be submitted
 //  on /transaction.submit_typed endpoint
+// TODO currently accepts a single signer & tx, should work with arbitrary number of inputs and signatures
 func (p *PaymentTx) buildTypedTransaction() error {
-	for _, s := range p.Signatures {
-		p.TypedTransaction.Signatures = append(p.TypedTransaction.Signatures, fmt.Sprintf("0x%v", hex.EncodeToString(s)))
+	for _, _ = range p.CreateTransactionResponse.Data.Transactions[0].Inputs {
+		p.TypedTransaction.Signatures = append(p.TypedTransaction.Signatures, fmt.Sprintf("0x%v", hex.EncodeToString(p.Signatures[0])))
 	}
 	tx := p.CreateTransactionResponse.Data.Transactions[0].TypedData
 	p.TypedTransaction.Domain = tx.Domain

@@ -28,20 +28,18 @@ import (
 const (
 	EthCurrency     = "0x0000000000000000000000000000000000000000"
 	DefaultMetadata = "0x0000000000000000000000000000000000000000000000000000000000000000"
-	MaxInputs = 4
-	MaxOutputs = 4
+	MaxInputs       = 4
+	MaxOutputs      = 4
 )
-
 
 //deposit parent for ALD
 type DepositTransaction struct {
 	OutputType  uint
 	UTXOInputs  []interface{}
 	UTXOOutputs []interface{}
-	TxData uint
-	MetaData common.Hash
+	TxData      uint
+	MetaData    common.Hash
 }
-
 
 type InputDeposit struct {
 	Txindex uint `json:"txindex"`
@@ -56,8 +54,8 @@ type DepositOutput struct {
 
 type OutputData struct {
 	OutputGuard common.Address
-	Token common.Address
-	Amount uint64
+	Token       common.Address
+	Amount      uint64
 }
 
 //sign an already hashed tx bytes
@@ -82,15 +80,14 @@ func SignHash(hashed []byte, privateKeys []string) ([][]byte, error) {
 }
 
 // Generate Account - Public and Privatekey
-func GenerateAccount() (string, string) {
+func GenerateAccount() (string, string, error) {
 	key, err := crypto.GenerateKey()
 	if err != nil {
-		log.Fatal(err)
+		return "", "", err
 	}
 	address := crypto.PubkeyToAddress(key.PublicKey).Hex()
 	privateKey := hex.EncodeToString(key.D.Bytes())
-	log.Infof("\n Address: %s \n Privatekey: 0x%s ", address, strings.ToUpper(privateKey))
-	return address, privateKey
+	return address, privateKey, nil
 }
 
 // Derive Address from Private Key
@@ -134,15 +131,15 @@ func convertStringToFloat64(value string) float64 {
 	return f
 }
 
-
 // Build a deposit transaction, in the current ALD implmentation, the encoded RLP transaction is dynamic.
 //The deposit transaction consists of empty inputs  and a single output UTXO
-//made up of a specified address, currency, value and transaction type 
+//made up of a specified address, currency, value and transaction type
+//TODO make this applicable for both ETH and ERC20
 
 func BuildRLPDeposit(address, currency common.Address, value, txtype uint64) ([]byte, error) {
-	deposit := DepositTransaction{OutputType: uint(txtype), TxData:uint(0), MetaData: common.HexToHash(DefaultMetadata)}
+	deposit := DepositTransaction{OutputType: uint(txtype), TxData: uint(0), MetaData: common.HexToHash(DefaultMetadata)}
 	cur := currency
-	// create a single ownership output 
+	// create a single ownership output
 	ownership := DepositOutput{}
 	ownership.OutputData.OutputGuard = address
 	ownership.OutputData.Token = cur
@@ -161,7 +158,6 @@ func BuildRLPDeposit(address, currency common.Address, value, txtype uint64) ([]
 
 	return rlpEncoded, nil
 }
-
 
 // Add the full time include timezone into log messages
 // INFO[2019-01-31T16:38:57+07:00]
