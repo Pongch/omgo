@@ -21,7 +21,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/pongch/omgo/childchain"
 	"github.com/pongch/omgo/rootchain"
 	"github.com/pongch/omgo/util"
 	log "github.com/sirupsen/logrus"
@@ -30,12 +29,12 @@ import (
 )
 
 var (
-	deposit         = kingpin.Command("deposit", "Deposit ETH or ERC20 into the Plamsa MoreVP smart contract.")
-	depositAmount   = deposit.Flag("amount", "Amount to deposit in wei").Required().String()
-	depositCurrency = deposit.Flag("currency", "ERC20 token address for the deposit, leave blank for ETH").Default(childchain.EthCurrency).String()
+	approve         = kingpin.Command("approve", "approve erc20 token before deposit into the contract")
+	approveCurrency = approve.Flag("currency", "address of ERC20 token").Required().String()
+	approveAmount   = approve.Flag("amount", "address of ERC20 token").Required().String()
 )
 
-func _deposit() error {
+func _approve() error {
 	env, err := getCliEnv()
 	if err != nil {
 		return fmt.Errorf("error fetching environment variables:", err)
@@ -45,38 +44,32 @@ func _deposit() error {
 		return fmt.Errorf("error initializing Ethereum client for deposit, %v", err)
 	}
 	rc := rootchain.NewClient(client)
-	var depositTx *rootchain.DepositTransaction
-	if *depositCurrency == childchain.EthCurrency {
-		depositTx = rc.NewDeposit(common.HexToAddress(env.vcontract), common.HexToAddress(util.DeriveAddress(env.pkey)), common.HexToAddress(*depositCurrency), *depositAmount)
-	} else {
-		depositTx = rc.NewDeposit(common.HexToAddress(env.v2contract), common.HexToAddress(util.DeriveAddress(env.pkey)), common.HexToAddress(*depositCurrency), *depositAmount)
-	}
-
-	privatekey, err := crypto.HexToECDSA(util.FilterZeroX(env.pkey))
+	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.pkey))
 	if err != nil {
 		return fmt.Errorf("bad privatekey: %v", err)
 	}
 	gasPrice, _ := client.SuggestGasPrice(context.Background())
-	txopts := bind.NewKeyedTransactor(privatekey)
+	amount, _ := new(big.Int).SetString(*approveAmount, 0)
+	approvalTx := rc.NewApprove(
+		common.HexToAddress(env.vcontract),
+		common.HexToAddress(*approveCurrency),
+		amount,
+	)
+	gasPrice, _ = client.SuggestGasPrice(context.Background())
+	txopts := bind.NewKeyedTransactor(privateKey)
 	txopts.From = common.HexToAddress(util.DeriveAddress(env.pkey))
 	txopts.GasLimit = 2000000
-	if *depositCurrency == childchain.EthCurrency {
-		amount, _ := new(big.Int).SetString(*depositAmount, 0)
-		txopts.Value = amount
-	}
 	txopts.GasPrice = gasPrice
-	if err := rootchain.Options(depositTx, txopts); err != nil {
+	if err := rootchain.Options(approvalTx, txopts); err != nil {
 		return fmt.Errorf("transaction options invalid, %v", err)
 	}
-	if err := rootchain.Build(depositTx); err != nil {
+	if err := rootchain.Build(approvalTx); err != nil {
 		return fmt.Errorf("deposit build error, %v", err)
 	}
-	tx, err := rootchain.Submit(depositTx)
+	tx, err := rootchain.Submit(approvalTx)
 	if err != nil {
-		return fmt.Errorf("error submiting transaction for deposit =: %v", err)
-	} else {
-		log.Infof("deposit txhash: %v", tx.Hash().Hex())
+		return fmt.Errorf("error submiting transaction for token approval =: %v", err)
 	}
+	log.Printf("txhash: %v \n", tx.Hash().Hex())
 	return nil
-
 }

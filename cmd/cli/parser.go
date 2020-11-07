@@ -37,6 +37,10 @@ func ParseArgs() {
 		if err := _getTransaction(); err != nil {
 			log.Error(err)
 		}
+	case approve.FullCommand():
+		if err := _approve(); err != nil {
+			log.Error(err)
+		}
 	case deposit.FullCommand():
 		if err := _deposit(); err != nil {
 			log.Error(err)
