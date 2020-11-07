@@ -143,3 +143,7 @@ func DisplayGetResponse(response *childchain.TransactionGetResponse) {
 	log.Infof("Inputs: %v", fmt.Sprintf("%+v", response.Data.Inputs))
 	log.Infof("Outputs: %v", fmt.Sprintf("%+v", response.Data.Outputs))
 }
+
+func DisplayExitData(response *childchain.StandardExitUTXOData) {
+	log.Info("UTXO Position: ", response.Data.UtxoPos, " Proof: ", response.Data.Proof)
+}

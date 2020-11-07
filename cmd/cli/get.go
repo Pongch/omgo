@@ -27,8 +27,9 @@ var (
 	getBalance     = get.Command("balance", "Retrieve balance of an address from the Watcher service")
 	getStatus      = get.Command("status", "Get status from the Watcher")
 	getTransaction = get.Command("transaction", "get transaction details")
+	getExit        = get.Command("exit", "Get UTXO exit information")
 	from           = get.Flag("from", "address to search UTXOs").String()
-	txHash         = get.Flag("txhash", "transaction hash of the transaction you would like to get the information for").String()
+	txHash         = getTransaction.Flag("txhash", "transaction hash of the transaction you would like to get the information for").Required().String()
 )
 
 func _getUtxo() error {
