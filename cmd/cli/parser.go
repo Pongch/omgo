@@ -12,45 +12,43 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package cli
 
 import (
 	"net/http"
 
+	"context"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pongch/omgo/childchain"
 	"github.com/pongch/omgo/rootchain"
 	"github.com/pongch/omgo/util"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-	"context"
-	"math/big"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/crypto"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"strconv"
 )
 
 var (
-	get              = kingpin.Command("get", "Get a resource.").Default()
-	getUTXO          = get.Command("utxos", "Retrieve UTXO data from the Watcher service")
-	watcherURL       = get.Flag("watcher", "FQDN of the Watcher in the format https://watcher.path.net").Required().String()
-	ownerUTXOAddress = get.Flag("address", "Owner address to search UTXOs").String()
-	getBalance       = get.Command("balance", "Retrieve balance of an address from the Watcher service")
-	status           = get.Command("status", "Get status from the Watcher")
-	transaction      = get.Command("transaction", "get transaction details")
-	txHash           = get.Flag("txhash", "transaction hash of the transaction you would like to get the information for").String()
+	// get              = kingpin.Command("get", "Get a resource.").Default()
+	// getUTXO          = get.Command("utxos", "Retrieve UTXO data from the Watcher service")
+	watcherURL = get.Flag("watcher", "FQDN of the Watcher in the format https://watcher.path.net").String()
+	// ownerUTXOAddress = get.Flag("address", "Owner address to search UTXOs").String()
+	// getBalance       = get.Command("balance", "Retrieve balance of an address from the Watcher service")
+	// status           = get.Command("status", "Get status from the Watcher")
+	// transaction      = get.Command("transaction", "get transaction details")
+	// txHash           = get.Flag("txhash", "transaction hash of the transaction you would like to get the information for").String()
 
 	getExit             = get.Command("exit", "Get UTXO exit information")
 	getExitUTXOPosition = getExit.Flag("utxo", "Get UTXO exit information").Required().Int()
 
-	deposit         = kingpin.Command("deposit", "Deposit ETH or ERC20 into the Plamsa MoreVP smart contract.")
-	privateKey      = deposit.Flag("privatekey", "Private key of the account used to send funds into Plasma MoreVP").Required().String()
-	client          = deposit.Flag("client", "Address of the Ethereum client. Infura and local node supported https://rinkeby.infura.io/v3/api_key or http://localhost:8545").Required().String()
-	contract        = deposit.Flag("contract", "Address of the Plasma MoreVP smart contract").Required().String()
-	depositAmount   = deposit.Flag("amount", "Amount to deposit in wei").Required().Int()
-	depositCurrency = deposit.Flag("currency", "ERC20 token address for the deposit, leave blank for ETH").Default(childchain.EthCurrency).String()
-
+	// deposit         = kingpin.Command("deposit", "Deposit ETH or ERC20 into the Plamsa MoreVP smart contract.")
+	// privateKey      = deposit.Flag("privatekey", "Private key of the account used to send funds into Plasma MoreVP").Required().String()
+	// client          = deposit.Flag("client", "Address of the Ethereum client. Infura and local node supported https://rinkeby.infura.io/v3/api_key or http://localhost:8545").Required().String()
+	// contract        = deposit.Flag("contract", "Address of the Plasma MoreVP smart contract").Required().String()
+	// depositAmount   = deposit.Flag("amount", "Amount to deposit in wei").Required().Int()
+	// depositCurrency = deposit.Flag("currency", "ERC20 token address for the deposit, leave blank for ETH").Default(childchain.EthCurrency).String()
 
 	send             = kingpin.Command("send", "Create a transaction on the OmiseGO Plasma MoreVP network")
 	to               = send.Flag("to", "Wallet address of the recipient").Required().String()
@@ -68,86 +66,34 @@ var (
 	exitPrivateKey = exit.Flag("privatekey", "Private key of the UTXO owner").Required().String()
 	clientExit     = exit.Flag("client", "Address of the Ethereum client. Infura and local node supported https://rinkeby.infura.io/v3/api_key or http://localhost:8545").Required().String()
 
-	process           = kingpin.Command("process", "Process all exits that have completed the challenge period")
-	processContract   = process.Flag("contract", "Address of the Plasma MoreVP smart contract").Required().String()
+	process         = kingpin.Command("process", "Process all exits that have completed the challenge period")
+	processContract = process.Flag("contract", "Address of the Plasma MoreVP smart contract").Required().String()
 	// processToken      = process.Flag("token", "Token address to process for standard exits").Required().String()
 	processPrivateKey = process.Flag("privatekey", "Private key used to fund the gas for the smart contract call").Required().String()
 	processExitClient = process.Flag("client", "Address of the Ethereum client. Infura and local node supported https://rinkeby.infura.io/v3/api_key or http://localhost:8545").Required().String()
 
 	create        = kingpin.Command("create", "Create a resource.")
 	createAccount = create.Command("account", "Create an account consisting of Public and Private key")
-
 )
 
 func ParseArgs() {
 	switch kingpin.Parse() {
-	case getUTXO.FullCommand():
-		//plasma_cli get utxos --address=0x944A81BeECac91802787fBCFB9767FCBf81db1f5 --watcher=http://watcher.path.net
-		chch, err := childchain.NewClient(*watcherURL, &http.Client{})
-		if err != nil {
+	case getUtxo.FullCommand():
+		if err := _getUtxo(); err != nil {
 			log.Error(err)
-		}
-		utxos, err := chch.GetUTXOsFromAddress(*ownerUTXOAddress)
-		if err != nil {
-			log.Error(err)
-		} else {
-			DisplayUTXOS(utxos)
 		}
 	case getBalance.FullCommand():
-		//plamsa_cli get balance --address=0x944A81BeECac91802787fBCFB9767FCBf81db1f5 --watcher=http://watcher.path.net
-		chch, err := childchain.NewClient(*watcherURL, &http.Client{})
-		if err != nil {
+		if err := _getBalance(); err != nil {
 			log.Error(err)
 		}
-		balance, err := chch.GetBalance(*ownerUTXOAddress)
-		if err != nil {
+	case getStatus.FullCommand():
+		if err := _getStatus(); err != nil {
 			log.Error(err)
-		} else {
-			DisplayBalance(balance)
-		}
-	case status.FullCommand():
-		//plamsa_cli get status --watcher=http://watcher.path.net
-		chch, err := childchain.NewClient(*watcherURL, &http.Client{})
-		if err != nil {
-			log.Error(err)
-		}
-		ws, err := chch.GetWatcherStatus()
-		if err != nil {
-			log.Error(err)
-		} else {
-			DisplayByzantineEvents(ws)
 		}
 	case deposit.FullCommand():
-				client, err := ethclient.Dial(*client)
-		if err != nil {
-			log.Errorf("error initializing Ethereum client for deposit, %v", err)
+		if err := _deposit(); err != nil {
+			log.Error(err)
 		}
-		rc := rootchain.NewClient(client)
-
-		depositTx := rc.NewDeposit(common.HexToAddress(*contract), common.HexToAddress(util.DeriveAddress(*privateKey)), common.HexToAddress(*depositCurrency), strconv.Itoa(*depositAmount))
-		privatekey, err := crypto.HexToECDSA(util.FilterZeroX(*privateKey))
-		if err != nil {
-			log.Errorf("bad privatekey: %v", err)
-		}
-		gasPrice, _ := client.SuggestGasPrice(context.Background())
-		txopts := bind.NewKeyedTransactor(privatekey)
-		txopts.From = common.HexToAddress(util.DeriveAddress(*privateKey))
-		txopts.GasLimit = 2000000
-		txopts.Value = big.NewInt(int64(*depositAmount))
-		txopts.GasPrice = gasPrice
-		if err := rootchain.Options(depositTx, txopts); err != nil {
-			log.Errorf("transaction options invalid, %v", err)
-		}
-		if err := rootchain.Build(depositTx); err != nil {
-			log.Errorf("deposit build error, %v", err)
-		}
-		tx, err := rootchain.Submit(depositTx)
-		if err != nil {
-			log.Errorf("error submiting transaction for deposit =: %v", err)
-		} else {
-			log.Infof("deposit txhash: %v", tx.Hash().Hex())
-		}
-
 	case send.FullCommand():
 		chch, err := childchain.NewClient(*watcherSubmitURL, &http.Client{})
 		if err != nil {
@@ -158,7 +104,6 @@ func ParseArgs() {
 			childchain.AddPayment(string(*amount), common.HexToAddress(*to), common.HexToAddress(*currency)),
 			childchain.AddMetadata(*metadata),
 			childchain.AddFee(common.HexToAddress(*feetoken)),
-
 		)
 		if err = childchain.BuildTransaction(ptx); err != nil {
 			log.Errorf("unexpected error : %v", err)
@@ -174,16 +119,9 @@ func ParseArgs() {
 			DisplaySubmitResponse(res)
 		}
 
-	case transaction.FullCommand():
-		chch, err := childchain.NewClient(*watcherURL, &http.Client{})
-		if err != nil {
+	case getTransaction.FullCommand():
+		if err := _getTransaction(); err != nil {
 			log.Error(err)
-		}
-		gtx, err := chch.GetTransaction(*txHash)
-		if err != nil {
-			log.Errorf("got error: %v", err)
-		} else {
-			DisplayGetResponse(gtx)
 		}
 	case exit.FullCommand():
 		client, err := ethclient.Dial(*clientExit)

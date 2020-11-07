@@ -15,7 +15,7 @@ package main
 // limitations under the License.
 
 import (
-	// "github.com/pongch/omgo/cli"
+	"github.com/pongch/omgo/cmd/cli"
 	"github.com/pongch/omgo/util"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,6 +23,6 @@ import (
 func main() {
 	util.LogFormatter()
 	log.Info("Starting OMGO CLI")
-	ParseArgs()
+	cli.ParseArgs()
 	// parser.ParseArgs()
 }

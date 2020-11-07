@@ -14,10 +14,10 @@
 package childchain
 
 import (
-	"net/http"
-	"testing"
 	"encoding/json"
+	"net/http"
 	"strconv"
+	"testing"
 )
 
 func TestGetTransaction(t *testing.T) {
@@ -28,6 +28,10 @@ func TestGetTransaction(t *testing.T) {
 	chch, err := NewClient(ms.URL, &http.Client{})
 	if err != nil {
 		t.Errorf("unexpected error from creating new client: %v", err)
+	}
+	_, err = chch.GetTransaction("")
+	if err == nil {
+		t.Error("get transaction should not allow empty string:")
 	}
 	balance, err := chch.GetTransaction("0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21")
 	if err != nil {
