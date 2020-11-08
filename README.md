@@ -1,5 +1,5 @@
 # OMGO Client Library
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/pongch/omgo)](https://pkg.go.dev/github.com/pongch/omgo)[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/pongch/omgo/blob/master/LICENSE)[![Go Report Card](https://goreportcard.com/badge/github.com/pongch/omgo)](https://goreportcard.com/report/github.com/pongch/omgo)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/pongch/omgo)]  (https://pkg.go.dev/github.com/pongch/omgo)[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/pongch/omgo/blob/master/LICENSE)  [![Go Report Card](https://goreportcard.com/badge/github.com/pongch/omgo)](https://goreportcard.com/report/github.com/pongch/omgo)
 
 
 golang client library for OMG Network
@@ -13,9 +13,9 @@ compatible with OMG Network V1 Beta
 ## Functionality 
 
 root chain:
-1. Deposit ETH to the root chain contract
-2. Start standard exit with ETH
-3. Process exit UTXO back to root chain 
+1. Deposit ETH/ERC20 to the root chain contract
+2. Start standard exit with ETH/ERC20
+3. Process exit ETH/ERC20 back to root chain 
 
 *Note*: current functionalities are limited, but /abi package provides binder which give clients all available root chain contract calls from scratch, this can be found in:
 `github.com/pongch/omgo/abi`
@@ -86,6 +86,10 @@ omgo create keypair
 ```
 
 ## Deposit into the OMG Network
+
+```
+omgo approve --currency=token_to_approve --amount=amount_to_approve
+```
 
 ```
 omgo deposit  --amount=amount_in_wei
