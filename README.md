@@ -1,5 +1,5 @@
 # OMGO Client Library
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/pongch/omgo)]  (https://pkg.go.dev/github.com/pongch/omgo)[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/pongch/omgo/blob/master/LICENSE)  [![Go Report Card](https://goreportcard.com/badge/github.com/pongch/omgo)](https://goreportcard.com/report/github.com/pongch/omgo)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/pongch/omgo)](https://pkg.go.dev/github.com/pongch/omgo)  [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/pongch/omgo/blob/master/LICENSE)  [![Go Report Card](https://goreportcard.com/badge/github.com/pongch/omgo)](https://goreportcard.com/report/github.com/pongch/omgo)
 
 
 golang client library for OMG Network
