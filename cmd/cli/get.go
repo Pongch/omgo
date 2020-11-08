@@ -27,7 +27,6 @@ var (
 	getBalance     = get.Command("balance", "Retrieve balance of an address from the Watcher service")
 	getStatus      = get.Command("status", "Get status from the Watcher")
 	getTransaction = get.Command("transaction", "get transaction details")
-	getExit        = get.Command("exit", "Get UTXO exit information")
 	from           = get.Flag("from", "address to search UTXOs").String()
 	txHash         = getTransaction.Flag("txhash", "transaction hash of the transaction you would like to get the information for").Required().String()
 )
@@ -45,7 +44,7 @@ func _getUtxo() error {
 	if err != nil {
 		return fmt.Errorf("error fetching utxos: %v", err)
 	}
-	DisplayUTXOS(utxos)
+	displayUTXOS(utxos)
 	return nil
 }
 
@@ -62,7 +61,7 @@ func _getBalance() error {
 	if err != nil {
 		return fmt.Errorf("error fetching balance: %v", err)
 	}
-	DisplayBalance(balance)
+	displayBalance(balance)
 	return nil
 }
 
@@ -77,9 +76,9 @@ func _getStatus() error {
 	}
 	ws, err := chch.GetWatcherStatus()
 	if err != nil {
-		return fmt.Errorf("error fetching watcher status", err)
+		return fmt.Errorf("error fetching watcher status %v", err)
 	}
-	DisplayByzantineEvents(ws)
+	displayByzantineEvents(ws)
 	return nil
 }
 
@@ -94,8 +93,8 @@ func _getTransaction() error {
 	}
 	ws, err := chch.GetTransaction(*txHash)
 	if err != nil {
-		return fmt.Errorf("error fetching transaction", err)
+		return fmt.Errorf("error fetching transaction %v", err)
 	}
-	DisplayGetResponse(ws)
+	displayGetResponse(ws)
 	return nil
 }

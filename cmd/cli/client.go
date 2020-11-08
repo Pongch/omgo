@@ -24,6 +24,7 @@ type clienv struct {
 	rcclient   string
 	fwcontract string
 	vcontract  string
+	v2contract string
 	econtract  string
 	pkey       string
 }
@@ -32,6 +33,7 @@ func getCliEnv() (*clienv, error) {
 	var ccclient string
 	var rcclient string
 	var vcontract string
+	var v2contract string
 	var fwcontract string
 	var econtract string
 	var pkey string
@@ -48,6 +50,9 @@ func getCliEnv() (*clienv, error) {
 	if vcontract, ok = os.LookupEnv("OMGO_VCONTRACT"); !ok {
 		return nil, fmt.Errorf("env OMGO_VCONTRACT not found")
 	}
+	if v2contract, ok = os.LookupEnv("OMGO_V2CONTRACT"); !ok {
+		return nil, fmt.Errorf("env OMGO_V2CONTRACT not found")
+	}
 	if econtract, ok = os.LookupEnv("OMGO_ECONTRACT"); !ok {
 		return nil, fmt.Errorf("env OMGO_ECONTRACT not found")
 	}
@@ -59,6 +64,7 @@ func getCliEnv() (*clienv, error) {
 		rcclient:   rcclient,
 		fwcontract: fwcontract,
 		vcontract:  vcontract,
+		v2contract: v2contract,
 		econtract:  econtract,
 		pkey:       pkey,
 	}

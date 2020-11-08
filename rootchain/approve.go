@@ -23,39 +23,43 @@ import (
 	"github.com/pongch/omgo/abi"
 )
 
-// ERC20Transaction is a collection of functions and data needed to approve ERC20 tokens to be spendable
+// ApproveTransaction is an ERC20 transaction that approves user's funds to be deposited into Plasma Vault
 type ApproveTransaction struct {
 	*bind.TransactOpts
 	bind.ContractBackend
-	Erc20Binder Erc20Binder
+	Erc20Binder  Erc20Binder
 	Erc20Address common.Address
-	PlasmaVault common.Address
-	Amount *big.Int
+	PlasmaVault  common.Address
+	Amount       *big.Int
 }
 
+// Erc20Binder binds the ApproveTransaction to an ERC20 token contract
 type Erc20Binder func(common.Address, bind.ContractBackend) (*abi.Erc20, error)
 
+// NewApprove return a new instance of ApproveTransaction
 func (c *Client) NewApprove(vaultAddress, erc20Address common.Address, amount *big.Int) *ApproveTransaction {
 	return &ApproveTransaction{
 		ContractBackend: c.ContractBackend,
-		Erc20Address: erc20Address,
-		Erc20Binder: abi.NewErc20,
-		PlasmaVault: vaultAddress,
-		Amount: amount,
+		Erc20Address:    erc20Address,
+		Erc20Binder:     abi.NewErc20,
+		PlasmaVault:     vaultAddress,
+		Amount:          amount,
 	}
 }
 
-// ERC20 token approve transaction
+// Options set transaction options to ApproveTransaction
 func (a *ApproveTransaction) Options(t *bind.TransactOpts) error {
 	a.TransactOpts = t
 	return nil
 }
 
+// Build validates the approve transaction
 func (a *ApproveTransaction) Build() error {
 	//TODO validation
 	return nil
 }
 
+// Submit calls approve() on the ERC20 token contract
 func (a *ApproveTransaction) Submit() (*types.Transaction, error) {
 	instance, err := a.Erc20Binder(a.Erc20Address, a.ContractBackend)
 	if err != nil {
@@ -71,4 +75,3 @@ func (a *ApproveTransaction) Submit() (*types.Transaction, error) {
 	}
 	return tx, nil
 }
-

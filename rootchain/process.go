@@ -35,15 +35,14 @@ type ProcessExitTransaction struct {
 // ProcessExitOptions holds the input data required to make a process exit
 type ProcessExitOptions struct {
 	PlasmaAddress common.Address
-	TokenAddress common.Address
-	VaultId string
-	TopExit string
+	TokenAddress  common.Address
+	VaultId       string
+	TopExit       string
 	NumberOfExits string
 }
 
 //  ProcessExitOption is a functional option that performs an operation on ProcessExitOptions
 type ProcessExitOption func(*ProcessExitOptions)
-
 
 // PlasmaAddress sets the plasma contract address to process exit option
 func PlasmaAddress(address common.Address) ProcessExitOption {
@@ -81,24 +80,23 @@ func NumberOfExits(no string) ProcessExitOption {
 }
 
 // NewProcessExit is a method on root chain client that returns a new instance of process exit transaction
-func (c *Client) NewProcessExit(setters ...ProcessExitOption) *ProcessExitTransaction  {
+func (c *Client) NewProcessExit(setters ...ProcessExitOption) *ProcessExitTransaction {
 	peargs := &ProcessExitOptions{}
 	for _, setter := range setters {
 		setter(peargs)
 	}
 	return &ProcessExitTransaction{
-		ProcessExitOptions: peargs,
-		ContractBackend: c.ContractBackend,
+		ProcessExitOptions:    peargs,
+		ContractBackend:       c.ContractBackend,
 		PlasmaFrameworkBinder: abi.NewPlasmaFramework,
 	}
 }
 
 // Option is a method on ProcessExitTransaction set root chain transaction options for process exit transaction
-func(p *ProcessExitTransaction) Options(t *bind.TransactOpts) error {
+func (p *ProcessExitTransaction) Options(t *bind.TransactOpts) error {
 	p.TransactOpts = t
 	return nil
 }
-
 
 // Option is a method on ProcessExitTransaction that builds process exit transaction
 func (p *ProcessExitTransaction) Build() error {
@@ -106,7 +104,7 @@ func (p *ProcessExitTransaction) Build() error {
 	return nil
 }
 
-// Submit makes a root chain process exit call on the contract with given arguement
+// Submit makes a root chain process exit call on the contract with given argument
 func (p *ProcessExitTransaction) Submit() (*types.Transaction, error) {
 	instance, err := p.PlasmaFrameworkBinder(p.PlasmaAddress, p.ContractBackend)
 	if err != nil {
@@ -116,11 +114,11 @@ func (p *ProcessExitTransaction) Submit() (*types.Transaction, error) {
 	if !ok {
 		return nil, errors.New("cannot convert to big int in process exit")
 	}
-	topexit, ok :=  new(big.Int).SetString(p.TopExit, 10)
+	topexit, ok := new(big.Int).SetString(p.TopExit, 10)
 	if !ok {
 		return nil, errors.New("cannot convert to big int in process exit")
 	}
-	vaultId, ok :=  new(big.Int).SetString(p.VaultId, 10)
+	vaultId, ok := new(big.Int).SetString(p.VaultId, 10)
 	if !ok {
 		return nil, errors.New("cannot convert to big int in process exit")
 	}

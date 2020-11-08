@@ -1,4 +1,6 @@
 # OMGO Client Library
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/pongch/omgo)](https://pkg.go.dev/github.com/pongch/omgo)  [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/pongch/omgo/blob/master/LICENSE)  [![Go Report Card](https://goreportcard.com/badge/github.com/pongch/omgo)](https://goreportcard.com/report/github.com/pongch/omgo)
+
 
 golang client library for OMG Network
 
@@ -11,9 +13,9 @@ compatible with OMG Network V1 Beta
 ## Functionality 
 
 root chain:
-1. Deposit ETH to the root chain contract
-2. Start standard exit with ETH
-3. Process exit UTXO back to root chain 
+1. Deposit ETH/ERC20 to the root chain contract
+2. Start standard exit with ETH/ERC20
+3. Process exit ETH/ERC20 back to root chain 
 
 *Note*: current functionalities are limited, but /abi package provides binder which give clients all available root chain contract calls from scratch, this can be found in:
 `github.com/pongch/omgo/abi`
@@ -27,12 +29,15 @@ child chain:
 
 ## Packages
 
-1. githu.com/pongch/omgo/abi -> provides clients with all available root chain contract calls
-2. github.com/pongch/omgo/childchain -> provides clients with child chain API functionality
-3. github.com/pongch/omgo/childchain -> provides client with root chain contract calls
-4. github.com/pongch/omgo/util -> provides client with utility functions
-5. github.com/pongch/omgo/e2e -> end to end test
-6. github.com/pongch/omgo/cmd/cli -> CLI package
+| package                           | description                                                   |
+|-----------------------------------|---------------------------------------------------------------|
+| github.com/pongch/omgo/abi        | provides clients with all available root chain contract calls |
+| github.com/pongch/omgo/childchain | provides clients with child chain API functionality           |
+| github.com/pongch/omgo/childchain | provides client with root chain contract calls                |
+| github.com/pongch/omgo/util       | provides client with utility functions                        |
+| github.com/pongch/omgo/e2e        | end to end test                                               |
+| github.com/pongch/omgo/cmd/cli    | CLI package                                                   |
+
 
 ## Getting Started
 
@@ -53,63 +58,89 @@ Connectivity to Ethereum via a local RPC node or Infura is required.
 
 Note: ERC20 tokens are not currently supported.
 
-## Installation
+## Setup
 
 Currently, the CLI must be built from source:
 
 1. Run `go install` on root of the repository 
-2. cd into `/cmd/cli`
+2. cd into `/cmd`
 3. run `go build`
 
-## Create an Account (Keypair)
+the CLI will read from the following environment variables
 
 ```
-plasma_cli create account
+OMGO_CCCLIENT // client to interact with the child chain. This is currently Watcher-info endpoint
+OMGO_RCCLIENT // root chain client to interact with the Ethereum network, ie. local node or node provider like Infura
+OMGO_FWCONTRACT // plasma framework contract address
+OMGO_VCONTRACT // plasma vault ID=1 (ETH Vault) contract
+OMGO_V2CONTRACT // plasma vault ID=2 (ERC20 Vault) contract
+OMGO_ECONTRACT // plasma exit game contract
+OMGO_PKEY // private key of the wallet/account to transact from
+
 ```
 
-## Deposit ETH into the OMG Network
+## Create a keypair
 
 ```
-plasma_cli deposit --privatekey="private_key" --client="local_rpc_server_or_Infura_URL" --contract="contract_address" --amount=amount_in_wei --owner="owner_address"
+omgo create keypair
 ```
 
+## Deposit into the OMG Network
+
+```
+omgo approve --currency=token_to_approve --amount=amount_to_approve
+```
+
+```
+omgo deposit  --amount=amount_in_wei
+```
+optional flags:
+```
+--currency=non-eth-currency
+```
 
 ## Retrieve a List of UTXOs
 
 ```
-plasma_cli get utxos --watcher="watcher_URL" --address="public_address"
+omgo get utxos --from=public_address
 ```
 
-## Check the Balance of an Account
+## Retrieve the Balance of an Account
 
 ```
-plasma_cli get balance --watcher="watcher_URL" --address="public_address"
+omgo get balance --from=public_address
 ```
+
 ## Send transaction
 
 creates a send transaction from the balance of the privatekey to a recipient wallet 
 (currently only support 1 recipient). Makes an ETH transaction by default
 
 ```
-plasma_cli send --to="address" --privatekey="privatekey" --amount=amount --watcher="watcher_url"
+omgo send --to=address --amount=amount 
 ```
 
-optional arguements:
+optional flags:
 ```
---currency="token_address" 
---feetoken="token_address"
---feeamount=fee_amount
---metadata="hex_string"
+--currency=token_address
+--feetoken=token_address
+--metadata=hex_string
 ```
 
 ## Exit to Ethereum
 
 ```
-plasma_cli exit --utxo=UTXO_position --privatekey="private_key" --contract="contract_address" --watcher="watcher_url" --client="local_rpc_server_or_Infura_URL"
+omgo exit --utxo=UTXO_position
 ```
 
 ## Process Exit
 
+process matured exits, process ETH by default. use vault id=2 for ERC20 tokens
 ```
-plasma_cli process --privatekey="private_key" --contract="contract_address" --watcher="watcher_url" --client="local_rpc_server_or_Infura_URL"
+omgo process --number=number_of_exit_to_process 
+```
+optional flags:
+```
+--id=vault_id
+--currency=currency_to_process
 ```

@@ -16,7 +16,6 @@ package childchain
 
 import (
 	"fmt"
-	// "math/big"
 
 	"encoding/json"
 	"github.com/ethereum/go-ethereum/common"
@@ -24,9 +23,12 @@ import (
 )
 
 const (
-	EthCurrency     = "0x0000000000000000000000000000000000000000"
+	// EthCurrency is a hexadecimal string representing zero address or ETH
+	EthCurrency = "0x0000000000000000000000000000000000000000"
+	// DefaultMetadata is a hexadecimal string representing empty 32 bytes array
 	DefaultMetadata = "0x0000000000000000000000000000000000000000000000000000000000000000"
-	MaxOutputs      = 4
+	// MaxOutputs is a total number of outputs in a payment transaction
+	MaxOutputs = 4
 )
 
 // SignerFunc is any function that takes in raw byte
@@ -45,12 +47,12 @@ type TransactionSubmitResponse struct {
 	Version string `json:"version"`
 	Success bool   `json:"success"`
 	Data    struct {
-		Blknum      json.Number    `json:"blknum"`
-		Txindex     json.Number    `json:"txindex"`
-		Txhash      string `json:"txhash"`
-		Object      string `json:"object"`
-		Code        string `json:"code"`
-		Description string `json:"description"`
+		Blknum      json.Number `json:"blknum"`
+		Txindex     json.Number `json:"txindex"`
+		Txhash      string      `json:"txhash"`
+		Object      string      `json:"object"`
+		Code        string      `json:"code"`
+		Description string      `json:"description"`
 		Messages    struct {
 			ErrorKey string `json:"error_key"`
 		} `json:"messages"`

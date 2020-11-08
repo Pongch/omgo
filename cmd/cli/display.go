@@ -21,20 +21,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type ByzantineEventCounts struct {
+type byzantineEventCounts struct {
 	PiggyBack        int
 	NonCanonical     int
 	UnchallengedExit int
 	InvalidExit      int
 }
 
-// log any Ethereum transaction data
-func DisplayEthTransaction(description, txhash string) {
-	log.Info(description, txhash)
-}
-
-// log the UTXO data in a human friendly format
-func DisplayUTXOS(u *childchain.WatcherUTXOsFromAddress) {
+func displayUTXOS(u *childchain.WatcherUTXOsFromAddress) {
 	for _, value := range u.Data {
 		log.Info("Owner: ", value.Owner)
 		log.Info("Amount: ", value.Amount)
@@ -46,17 +40,14 @@ func DisplayUTXOS(u *childchain.WatcherUTXOsFromAddress) {
 	}
 }
 
-// log the balance data in a human friendly format
-func DisplayBalance(b *childchain.WatcherBalanceFromAddress) {
+func displayBalance(b *childchain.WatcherBalanceFromAddress) {
 	for _, v := range b.Data {
 		log.Info("Currency: ", v.Currency)
 		log.Info("Amount: ", v.Amount)
 	}
 }
 
-//TODO: Display all events in the specs
-//parse byzantine events data based on event names
-func DisplayByzantineEvents(b *childchain.WatcherStatus) ByzantineEventCounts {
+func displayByzantineEvents(b *childchain.WatcherStatus) byzantineEventCounts {
 	var n int
 	var p int
 	var ue int
@@ -107,12 +98,11 @@ func DisplayByzantineEvents(b *childchain.WatcherStatus) ByzantineEventCounts {
 		log.Infof("%v: %v", v.Service, v.Height)
 	}
 
-	return ByzantineEventCounts{NonCanonical: n, PiggyBack: p, UnchallengedExit: ue, InvalidExit: ie}
+	return byzantineEventCounts{NonCanonical: n, PiggyBack: p, UnchallengedExit: ue, InvalidExit: ie}
 }
 
-//Display transaction.submit response
-func DisplaySubmitResponse(response *childchain.TransactionSubmitResponse) {
-	if response.Success == true {
+func displaySubmitResponse(response *childchain.TransactionSubmitResponse) {
+	if response.Success {
 		log.Infof(
 			"\n Response:\n Success: %v \n Blknum: %v \n txindex: %v\n Txhash: %v",
 			response.Success,
@@ -130,8 +120,7 @@ func DisplaySubmitResponse(response *childchain.TransactionSubmitResponse) {
 	}
 }
 
-//Display transaction.get response
-func DisplayGetResponse(response *childchain.TransactionGetResponse) {
+func displayGetResponse(response *childchain.TransactionGetResponse) {
 	log.Infof(
 		"\n tx-index: %v ,\n tx-hash: %v,\n meta-data: %v,\n",
 		response.Data.Txindex,
@@ -142,8 +131,4 @@ func DisplayGetResponse(response *childchain.TransactionGetResponse) {
 	log.Infof("Block data: %v", fmt.Sprintf("%+v", response.Data.Block))
 	log.Infof("Inputs: %v", fmt.Sprintf("%+v", response.Data.Inputs))
 	log.Infof("Outputs: %v", fmt.Sprintf("%+v", response.Data.Outputs))
-}
-
-func DisplayExitData(response *childchain.StandardExitUTXOData) {
-	log.Info("UTXO Position: ", response.Data.UtxoPos, " Proof: ", response.Data.Proof)
 }

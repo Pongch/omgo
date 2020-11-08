@@ -23,46 +23,45 @@ import (
 	"strconv"
 )
 
-
 // DepositBuilder is a function that builds an RLP input from a set of inputs
 // TODO clean up transaction builder signature to return a curried function instead
 // form a deposit transaction
-type DepositBuilder  func(common.Address, common.Address, uint64, uint64) ([]byte, error)
+type DepositBuilder func(common.Address, common.Address, uint64, uint64) ([]byte, error)
 
 // VaultBinder binds the go code to an Ethvault contract on the root chain
 // TODO implement vault binder for ERC20
-type VaultBinder func(common.Address, bind.ContractBackend) (*abi.Ethvault, error) 
+type VaultBinder func(common.Address, bind.ContractBackend) (*abi.Ethvault, error)
 
-type Erc20VaultBinder func(common.Address, bind.ContractBackend) (*abi.Erc20vault, error) 
+// Erc20VaultBinder binds the go code to an Erc20Vault contract on the root chain
+type Erc20VaultBinder func(common.Address, bind.ContractBackend) (*abi.Erc20vault, error)
 
 // DepositTransaction is a collection of functions and data needed to make a deposit transaction on the root chain
 type DepositTransaction struct {
 	*bind.TransactOpts
 	bind.ContractBackend
-	VaultAddress common.Address
-	Amount string
-	Owner common.Address
-	Currency common.Address
-	VaultBinder VaultBinder
+	VaultAddress     common.Address
+	Amount           string
+	Owner            common.Address
+	Currency         common.Address
+	VaultBinder      VaultBinder
 	Erc20VaultBinder Erc20VaultBinder
-	Builder DepositBuilder
-	RlpTransaction []byte
+	Builder          DepositBuilder
+	RlpTransaction   []byte
 }
 
 // NewDeposit is a method on root chain client that create a new deposit
-func (c *Client) NewDeposit(vaultAddress, owner, currency common.Address, amount string) *DepositTransaction{
+func (c *Client) NewDeposit(vaultAddress, owner, currency common.Address, amount string) *DepositTransaction {
 	return &DepositTransaction{
-		ContractBackend: c.ContractBackend,
-		VaultAddress: vaultAddress,
-		VaultBinder: abi.NewEthvault,
+		ContractBackend:  c.ContractBackend,
+		VaultAddress:     vaultAddress,
+		VaultBinder:      abi.NewEthvault,
 		Erc20VaultBinder: abi.NewErc20vault,
-		Amount: amount,
-		Owner: owner,
-		Builder: util.BuildRLPDeposit,
-		Currency: currency,
+		Amount:           amount,
+		Owner:            owner,
+		Builder:          util.BuildRLPDeposit,
+		Currency:         currency,
 	}
 }
-
 
 // Options is a method on DepositTransaction that set root chain transaction options
 func (d *DepositTransaction) Options(t *bind.TransactOpts) error {
@@ -71,7 +70,7 @@ func (d *DepositTransaction) Options(t *bind.TransactOpts) error {
 	return nil
 }
 
-// Bulid is a method on DepositTransaction that encodes the transaction to RLP with the RLP Builder
+// Build is a method on DepositTransaction that encodes the transaction to RLP with the RLP Builder
 func (d *DepositTransaction) Build() error {
 	amount, err := strconv.ParseUint(d.Amount, 10, 64)
 	if err != nil {

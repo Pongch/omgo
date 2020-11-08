@@ -27,27 +27,31 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"math/big"
-	"strconv"
 )
 
 var (
 	deposit         = kingpin.Command("deposit", "Deposit ETH or ERC20 into the Plamsa MoreVP smart contract.")
-	depositAmount   = deposit.Flag("amount", "Amount to deposit in wei").Required().Int()
+	depositAmount   = deposit.Flag("amount", "Amount to deposit in wei").Required().String()
 	depositCurrency = deposit.Flag("currency", "ERC20 token address for the deposit, leave blank for ETH").Default(childchain.EthCurrency).String()
 )
 
 func _deposit() error {
 	env, err := getCliEnv()
 	if err != nil {
-		return fmt.Errorf("error fetching environment variables:", err)
+		return fmt.Errorf("error fetching environment variables: %v", err)
 	}
 	client, err := ethclient.Dial(env.rcclient)
 	if err != nil {
 		return fmt.Errorf("error initializing Ethereum client for deposit, %v", err)
 	}
 	rc := rootchain.NewClient(client)
+	var depositTx *rootchain.DepositTransaction
+	if *depositCurrency == childchain.EthCurrency {
+		depositTx = rc.NewDeposit(common.HexToAddress(env.vcontract), common.HexToAddress(util.DeriveAddress(env.pkey)), common.HexToAddress(*depositCurrency), *depositAmount)
+	} else {
+		depositTx = rc.NewDeposit(common.HexToAddress(env.v2contract), common.HexToAddress(util.DeriveAddress(env.pkey)), common.HexToAddress(*depositCurrency), *depositAmount)
+	}
 
-	depositTx := rc.NewDeposit(common.HexToAddress(env.vcontract), common.HexToAddress(util.DeriveAddress(env.pkey)), common.HexToAddress(*depositCurrency), strconv.Itoa(*depositAmount))
 	privatekey, err := crypto.HexToECDSA(util.FilterZeroX(env.pkey))
 	if err != nil {
 		return fmt.Errorf("bad privatekey: %v", err)
@@ -56,7 +60,10 @@ func _deposit() error {
 	txopts := bind.NewKeyedTransactor(privatekey)
 	txopts.From = common.HexToAddress(util.DeriveAddress(env.pkey))
 	txopts.GasLimit = 2000000
-	txopts.Value = big.NewInt(int64(*depositAmount))
+	if *depositCurrency == childchain.EthCurrency {
+		amount, _ := new(big.Int).SetString(*depositAmount, 0)
+		txopts.Value = amount
+	}
 	txopts.GasPrice = gasPrice
 	if err := rootchain.Options(depositTx, txopts); err != nil {
 		return fmt.Errorf("transaction options invalid, %v", err)

@@ -19,6 +19,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
+// ParseArgs parse the arguement to the commandline from stdin
 func ParseArgs() {
 	switch kingpin.Parse() {
 	case getUtxo.FullCommand():
@@ -35,6 +36,10 @@ func ParseArgs() {
 		}
 	case getTransaction.FullCommand():
 		if err := _getTransaction(); err != nil {
+			log.Error(err)
+		}
+	case approve.FullCommand():
+		if err := _approve(); err != nil {
 			log.Error(err)
 		}
 	case deposit.FullCommand():

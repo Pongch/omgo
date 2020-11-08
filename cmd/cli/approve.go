@@ -25,60 +25,51 @@ import (
 	"github.com/pongch/omgo/util"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
-	"strconv"
+	"math/big"
 )
 
 var (
-	exit         = kingpin.Command("exit", "Standard exit a UTXO back to the root chain.")
-	utxoPosition = exit.Flag("utxopos", "UTXO Position that will be exited").Required().String()
+	approve         = kingpin.Command("approve", "approve erc20 token before deposit into the contract")
+	approveCurrency = approve.Flag("currency", "address of ERC20 token").Required().String()
+	approveAmount   = approve.Flag("amount", "address of ERC20 token").Required().String()
 )
 
-func _exit() error {
+func _approve() error {
 	env, err := getCliEnv()
 	if err != nil {
 		return fmt.Errorf("error fetching environment variables: %v", err)
 	}
 	client, err := ethclient.Dial(env.rcclient)
 	if err != nil {
-		fmt.Errorf("error dialing ethclient: %v", err)
+		return fmt.Errorf("error initializing Ethereum client for deposit, %v", err)
 	}
 	rc := rootchain.NewClient(client)
-	ste := rc.NewStandardExit(common.HexToAddress(env.econtract))
-	c := &bind.CallOpts{}
-	bondsize, err := ste.GetStandardExitBond(c)
+	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.pkey))
 	if err != nil {
-		return fmt.Errorf("could not get exit bond: %v", err)
+		return fmt.Errorf("bad privatekey: %v", err)
 	}
 	gasPrice, _ := client.SuggestGasPrice(context.Background())
-	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.pkey))
+	amount, _ := new(big.Int).SetString(*approveAmount, 0)
+	approvalTx := rc.NewApprove(
+		common.HexToAddress(env.vcontract),
+		common.HexToAddress(*approveCurrency),
+		amount,
+	)
+	gasPrice, _ = client.SuggestGasPrice(context.Background())
 	txopts := bind.NewKeyedTransactor(privateKey)
 	txopts.From = common.HexToAddress(util.DeriveAddress(env.pkey))
 	txopts.GasLimit = 2000000
-	txopts.Value = bondsize
 	txopts.GasPrice = gasPrice
-
-	utxo, err := strconv.ParseInt(*utxoPosition, 10, 0) //TODO handle big num
-	if err != nil {
-		return fmt.Errorf("issue parseing utxo position %v", err)
-	}
-	ed, err := rootchain.GetUTXOExitData(env.ccclient, int(utxo))
-	if err != nil {
-		return fmt.Errorf("unexpected error from getting UTXO exit data %v", err)
-	}
-
-	if err := ste.Utxo(ed); err != nil {
-		return fmt.Errorf("error setting data for childchain transaction: %v", err)
-	}
-	if err := rootchain.Options(ste, txopts); err != nil {
+	if err := rootchain.Options(approvalTx, txopts); err != nil {
 		return fmt.Errorf("transaction options invalid, %v", err)
 	}
-	if err := rootchain.Build(ste); err != nil {
-		return fmt.Errorf("exit build error, %v", err)
+	if err := rootchain.Build(approvalTx); err != nil {
+		return fmt.Errorf("deposit build error, %v", err)
 	}
-	tx, err := rootchain.Submit(ste)
+	tx, err := rootchain.Submit(approvalTx)
 	if err != nil {
-		return fmt.Errorf("error submiting transaction for exit: %v", err)
+		return fmt.Errorf("error submiting transaction for token approval =: %v", err)
 	}
-	log.Printf("standard exit tx hash: %s \n", tx.Hash().Hex())
+	log.Printf("txhash: %v \n", tx.Hash().Hex())
 	return nil
 }

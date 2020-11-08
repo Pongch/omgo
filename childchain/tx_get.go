@@ -21,23 +21,24 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// response returned from the watcher from calling /transaction.get end point
 type TransactionGetResponse struct {
 	Version string    `json:"version"`
 	Success bool      `json:"success"`
-	Data    GetTxData `json:"data"`
+	Data    getTxData `json:"data"`
 }
 
-type GetTxData struct {
+type getTxData struct {
 	Txindex  json.Number `json:"txindex"`
 	Txhash   string      `json:"txhash"`
 	Metadata string      `json:"metadata"`
 	Txbytes  string      `json:"txbytes"`
-	Block    Block       `json:"block"`
+	Block    block       `json:"block"`
 	Inputs   []Inputs    `json:"inputs"`
 	Outputs  []Outputs   `json:"outputs"`
 }
 
-type Block struct {
+type block struct {
 	Timestamp json.Number `json:"timestamp"`
 	Hash      string      `json:"hash"`
 	EthHeight json.Number `json:"eth_height"`

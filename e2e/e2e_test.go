@@ -15,24 +15,23 @@
 package e2e
 
 import (
-	"testing"
-	"github.com/pongch/omgo/util"
+	"context"
+	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pongch/omgo/childchain"
 	"github.com/pongch/omgo/rootchain"
-	"fmt"
-	"strconv"
-	"context"
-	"net/http"
+	"github.com/pongch/omgo/util"
 	"math/big"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/crypto"
+	"net/http"
+	"strconv"
+	"testing"
 )
 
-
 // must start new ETH Client, then take in a signer to sign transactions
-// TODO wrap all of the depositTx inside a rootchain wrapper interface function 
+// TODO wrap all of the depositTx inside a rootchain wrapper interface function
 func TestDepositEthNew(t *testing.T) {
 	env, err := loadTestEnv()
 	if err != nil {
@@ -44,7 +43,7 @@ func TestDepositEthNew(t *testing.T) {
 	}
 	rc := rootchain.NewClient(client)
 
-	depositTx := rc.NewDeposit(common.HexToAddress( env.EthVault ), common.HexToAddress(util.DeriveAddress(env.Privatekey)), common.HexToAddress(util.EthCurrency), env.DepositAmount)
+	depositTx := rc.NewDeposit(common.HexToAddress(env.EthVault), common.HexToAddress(util.DeriveAddress(env.Privatekey)), common.HexToAddress(util.EthCurrency), env.DepositAmount)
 	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.Privatekey))
 	if err != nil {
 		t.Errorf("bad privatekey: %v", err)
@@ -63,7 +62,9 @@ func TestDepositEthNew(t *testing.T) {
 		t.Errorf("deposit build error, %v", err)
 	}
 	tx, err := rootchain.Submit(depositTx)
-	if err != nil {t.Errorf("error submiting transaction for deposit =: %v", err)}
+	if err != nil {
+		t.Errorf("error submiting transaction for deposit =: %v", err)
+	}
 
 	fmt.Printf("%v", tx.Hash().Hex())
 	sleep(t)
@@ -74,13 +75,15 @@ func TestDepositEthNew(t *testing.T) {
 
 }
 
-
 func TestGetStandardExitBond(t *testing.T) {
 	env, err := loadTestEnv()
 	if err != nil {
 		t.Errorf("error loading test env in get exit bond test: %v", err)
 	}
 	client, err := ethclient.Dial(env.EthClient)
+	if err != nil {
+		t.Errorf("error dialing ethclient: %v", err)
+	}
 	rc := rootchain.NewClient(client)
 	ste := rc.NewStandardExit(common.HexToAddress(env.ExitGame))
 	c := &bind.CallOpts{}
@@ -91,14 +94,16 @@ func TestGetStandardExitBond(t *testing.T) {
 	fmt.Printf("exit bond: %v \n", res)
 }
 
-
-func TestStartStandardExit(t *testing.T){
+func TestStartStandardExit(t *testing.T) {
 	env, err := loadTestEnv()
 	if err != nil {
 		t.Errorf("error loading test env in standard exit test: %v", err)
 	}
 	// get standard exit bond
 	client, err := ethclient.Dial(env.EthClient)
+	if err != nil {
+		t.Errorf("error dialing ethclient: %v", err)
+	}
 	rc := rootchain.NewClient(client)
 	ste := rc.NewStandardExit(common.HexToAddress(env.ExitGame))
 	c := &bind.CallOpts{}
@@ -144,7 +149,9 @@ func TestStartStandardExit(t *testing.T){
 		t.Errorf("exit build error, %v", err)
 	}
 	tx, err := rootchain.Submit(ste)
-	if err != nil {t.Errorf("error submiting transaction for exit =: %v", err)}
+	if err != nil {
+		t.Errorf("error submiting transaction for exit =: %v", err)
+	}
 
 	res := tx.Hash().Hex()
 	fmt.Printf("standard exit tx hash: %s \n", res)
@@ -155,14 +162,16 @@ func TestStartStandardExit(t *testing.T){
 	}
 }
 
-
 func TestProcessExit(t *testing.T) {
 	env, err := loadTestEnv()
 	if err != nil {
 		t.Errorf("error loading test env in standard exit test: %v", err)
 	}
 
-	client, _ := ethclient.Dial(env.EthClient)
+	client, err := ethclient.Dial(env.EthClient)
+	if err != nil {
+		t.Errorf("error dialing ethclient: %v", err)
+	}
 	rc := rootchain.NewClient(client)
 	vaultID := "1"
 	numberOfExits := "2"
@@ -190,7 +199,9 @@ func TestProcessExit(t *testing.T) {
 		t.Errorf("error building process exit transaction: %v \n", err)
 	}
 	tx, err := rootchain.Submit(petx)
-	if err != nil {t.Errorf("error submiting transaction for process exit =: %v", err)}
+	if err != nil {
+		t.Errorf("error submiting transaction for process exit =: %v", err)
+	}
 	res := tx.Hash().Hex()
 
 	fmt.Printf("process exit tx hash: %s \n", res)
@@ -206,40 +217,45 @@ func TestErc20Approval(t *testing.T) {
 	if err != nil {
 		t.Errorf("error loading test env in standard exit test: %v", err)
 	}
-	client, _ := ethclient.Dial(env.EthClient)
+	client, err := ethclient.Dial(env.EthClient)
+	if err != nil {
+		t.Errorf("error dialing ethclient: %v", err)
+	}
+
 	rc := rootchain.NewClient(client)
 	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.Privatekey))
 	if err != nil {
 		t.Errorf("bad privatekey: %v", err)
 	}
 	gasPrice, _ := client.SuggestGasPrice(context.Background())
-	      amount, _ := new(big.Int).SetString(env.DepositAmount, 0)
-	      approvalTx := rc.NewApprove(
-	      	common.HexToAddress("0x18e15c2cdc003b845b056f8d6b6a91ab33d3f182"),
-	      	common.HexToAddress("0x0a180a76e4466bf68a7f86fb029bed3cccfaaac5"),
-	      	amount,
-	      )
-	      gasPrice, _ = client.SuggestGasPrice(context.Background())
-	      txopts := bind.NewKeyedTransactor(privateKey)
-	      txopts.From = common.HexToAddress(util.DeriveAddress(env.Privatekey))
-	      txopts.GasLimit = 2000000
-	      txopts.GasPrice = gasPrice
-	      if err := rootchain.Options(approvalTx, txopts); err != nil {
-	      	t.Errorf("transaction options invalid, %v", err)
-	      }
-	      if err := rootchain.Build(approvalTx); err != nil {
-	      	t.Errorf("deposit build error, %v", err)
-	      }
-	      tx, err := rootchain.Submit(approvalTx)
-	      if err != nil {t.Errorf("error submiting transaction for token approval =: %v", err)}
-	      fmt.Printf("%v", tx.Hash().Hex())
-	      sleep(t)
-	      status := checkReceipt(tx.Hash().Hex(), t)
-	      if status == false {
-	      	t.Error("transaction failed")
-	      }
+	amount, _ := new(big.Int).SetString(env.DepositAmount, 0)
+	approvalTx := rc.NewApprove(
+		common.HexToAddress(env.Erc20Vault),
+		common.HexToAddress(env.Erc20token),
+		amount,
+	)
+	gasPrice, _ = client.SuggestGasPrice(context.Background())
+	txopts := bind.NewKeyedTransactor(privateKey)
+	txopts.From = common.HexToAddress(util.DeriveAddress(env.Privatekey))
+	txopts.GasLimit = 2000000
+	txopts.GasPrice = gasPrice
+	if err := rootchain.Options(approvalTx, txopts); err != nil {
+		t.Errorf("transaction options invalid, %v", err)
+	}
+	if err := rootchain.Build(approvalTx); err != nil {
+		t.Errorf("deposit build error, %v", err)
+	}
+	tx, err := rootchain.Submit(approvalTx)
+	if err != nil {
+		t.Errorf("error submiting transaction for token approval =: %v", err)
+	}
+	fmt.Printf("%v", tx.Hash().Hex())
+	sleep(t)
+	status := checkReceipt(tx.Hash().Hex(), t)
+	if status == false {
+		t.Error("transaction failed")
+	}
 }
-
 
 func TestPaymentTransaction(t *testing.T) {
 	env, err := loadTestEnv()
@@ -252,9 +268,9 @@ func TestPaymentTransaction(t *testing.T) {
 	}
 	ptx := chch.NewPaymentTx(
 		childchain.AddOwner(common.HexToAddress(util.DeriveAddress(env.Privatekey))),
-		childchain.AddPayment(env.PaymentAmount, common.HexToAddress("0xedcf990e493f271020f3a2b2d6f17962683b2c45"), common.HexToAddress( childchain.EthCurrency )),
+		childchain.AddPayment(env.PaymentAmount, common.HexToAddress("0xedcf990e493f271020f3a2b2d6f17962683b2c45"), common.HexToAddress(childchain.EthCurrency)),
 		childchain.AddMetadata(childchain.DefaultMetadata),
-		childchain.AddFee(common.HexToAddress( childchain.EthCurrency )),
+		childchain.AddFee(common.HexToAddress(childchain.EthCurrency)),
 	)
 
 	if err = childchain.BuildTransaction(ptx); err != nil {
@@ -268,6 +284,5 @@ func TestPaymentTransaction(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error : %v", err)
 	}
-	fmt.Printf("txhash: %v \n", res )
+	fmt.Printf("txhash: %v \n", res)
 }
-
