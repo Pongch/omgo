@@ -24,11 +24,12 @@ import (
 	"strings"
 )
 
+// HTTPClient is a client that can make a request and return response
 type HttpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// Client is a childchain client that holds a 
+// Client is a childchain client that holds a
 // Watcher endpoint and HttpClient
 type Client struct {
 	Watcher    *url.URL

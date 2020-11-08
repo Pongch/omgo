@@ -20,6 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
+// ValidateHex verifies that the hexadecimal string is valid
 func ValidateHex(x string) error {
 	_, err := hexutil.Decode(x)
 	if err != nil {

@@ -19,13 +19,14 @@ import (
 	"math/big"
 )
 
+// CreateTransactionResponse is the response to the transaction.create
 type CreateTransactionResponse struct {
 	Version string `json:"version"`
 	Success bool   `json:"success"`
-	Data    Data   `json:"data"`
+	Data    data   `json:"data"`
 }
 
-type Data struct {
+type data struct {
 	Result       string         `json:"result"`
 	Transactions []Transactions `json:"transactions"`
 	Object       string         `json:"object"`
@@ -33,6 +34,7 @@ type Data struct {
 	Description  string         `json:"description"`
 }
 
+//Transactions to be signed by the client
 type Transactions struct {
 	Inputs    []Inputs  `json:"inputs"`
 	Outputs   []Outputs `json:"outputs"`
@@ -43,107 +45,110 @@ type Transactions struct {
 	TypedData TypedData `json:"typed_data"`
 }
 
+// Inputs to the transaction
 type Inputs struct {
-	Blknum   json.Number         `json:"blknum"`
-	Txindex  json.Number         `json:"txindex"`
-	Oindex   json.Number         `json:"oindex"`
+	Blknum   json.Number `json:"blknum"`
+	Txindex  json.Number `json:"txindex"`
+	Oindex   json.Number `json:"oindex"`
 	UtxoPos  *big.Int    `json:"utxo_pos"`
 	Owner    string      `json:"owner"`
 	Currency string      `json:"currency"`
 	Amount   json.Number `json:"amount"`
 }
 
+// Outputs to the transaction
 type Outputs struct {
 	Amount   json.Number `json:"amount"`
 	Currency string      `json:"currency"`
 	Owner    string      `json:"owner"`
 }
 
+// TypedData of the transaction to be signed
 type TypedData struct {
-	Types       Types   `json:"types"`
+	Types       types   `json:"types"`
 	PrimaryType string  `json:"primaryType"`
-	Domain      Domain  `json:"domain"`
-	Message     Message `json:"message"`
+	Domain      domain  `json:"domain"`
+	Message     message `json:"message"`
 }
 
-type Types struct {
-	EIP712Domain []EIP712Domain `json:"EIP712Domain"`
-	Transaction  []Transaction  `json:"Transaction"`
-	Input        []Input        `json:"Input"`
-	Output       []Output       `json:"Output"`
+type types struct {
+	EIP712Domain []eip712Domain `json:"EIP712Domain"`
+	Transaction  []transaction  `json:"Transaction"`
+	Input        []input        `json:"Input"`
+	Output       []output       `json:"Output"`
 }
 
-type Domain struct {
+type domain struct {
 	Name              string `json:"name"`
 	Salt              string `json:"salt"`
 	VerifyingContract string `json:"verifyingContract"`
 	Version           string `json:"version"`
 }
 
-type Message struct {
-	Input0   Input0  `json:"input0"`
-	Input1   Input1  `json:"input1"`
-	Input2   Input2  `json:"input2"`
-	Input3   Input3  `json:"input3"`
-	Output0  Output0 `json:"output0"`
-	Output1  Output1 `json:"output1"`
-	Output2  Output2 `json:"output2"`
-	Output3  Output3 `json:"output3"`
+type message struct {
+	Input0   input0  `json:"input0"`
+	Input1   input1  `json:"input1"`
+	Input2   input2  `json:"input2"`
+	Input3   input3  `json:"input3"`
+	Output0  output0 `json:"output0"`
+	Output1  output1 `json:"output1"`
+	Output2  output2 `json:"output2"`
+	Output3  output3 `json:"output3"`
 	Metadata string  `json:"metadata"`
 }
 
-type EIP712Domain struct {
+type eip712Domain struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 }
-type Transaction struct {
+type transaction struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 }
-type Input struct {
+type input struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 }
-type Output struct {
+type output struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 }
-type Input0 struct {
+type input0 struct {
 	Blknum  json.Number `json:"blknum"`
 	Txindex json.Number `json:"txindex"`
 	Oindex  json.Number `json:"oindex"`
 }
-type Input1 struct {
+type input1 struct {
 	Blknum  json.Number `json:"blknum"`
 	Txindex json.Number `json:"txindex"`
 	Oindex  json.Number `json:"oindex"`
 }
-type Input2 struct {
+type input2 struct {
 	Blknum  json.Number `json:"blknum"`
 	Txindex json.Number `json:"txindex"`
 	Oindex  json.Number `json:"oindex"`
 }
-type Input3 struct {
+type input3 struct {
 	Blknum  json.Number `json:"blknum"`
 	Txindex json.Number `json:"txindex"`
 	Oindex  json.Number `json:"oindex"`
 }
-type Output0 struct {
+type output0 struct {
 	Owner    string      `json:"owner"`
 	Currency string      `json:"currency"`
 	Amount   json.Number `json:"amount"`
 }
-type Output1 struct {
+type output1 struct {
 	Owner    string      `json:"owner"`
 	Currency string      `json:"currency"`
 	Amount   json.Number `json:"amount"`
 }
-type Output2 struct {
+type output2 struct {
 	Owner    string      `json:"owner"`
 	Currency string      `json:"currency"`
 	Amount   json.Number `json:"amount"`
 }
-type Output3 struct {
+type output3 struct {
 	Owner    string      `json:"owner"`
 	Currency string      `json:"currency"`
 	Amount   json.Number `json:"amount"`

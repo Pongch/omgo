@@ -48,7 +48,7 @@ type CreateTransaction struct {
 // Payment specifies the amount,
 // currency and recipient of the output
 type Payment struct {
-	Amount   *big.Int         `json:"amount"`
+	Amount   *big.Int       `json:"amount"`
 	Currency common.Address `json:"currency"`
 	Owner    common.Address `json:"owner"`
 }
@@ -57,11 +57,10 @@ type Payment struct {
 // data to be submitted to
 // submit_typed endpoint
 type TypedTransaction struct {
-	Domain     Domain   `json:"domain"`
-	Message    Message  `json:"message"`
+	Domain     domain   `json:"domain"`
+	Message    message  `json:"message"`
 	Signatures []string `json:"signatures"`
 }
-
 
 type PaymentOption func(*CreateTransaction)
 
@@ -91,9 +90,9 @@ func AddPayment(amount string, addr, curr common.Address) PaymentOption {
 	return func(c *CreateTransaction) {
 		bamount, _ := new(big.Int).SetString(amount, 0)
 		payment := Payment{
-			Amount: bamount,
+			Amount:   bamount,
 			Currency: curr,
-			Owner: addr,
+			Owner:    addr,
 		}
 		c.Payments = append(c.Payments, payment)
 	}
@@ -105,14 +104,13 @@ func AddMetadata(m string) PaymentOption {
 	}
 }
 
-
 // validate payment transaction structs
 func validate(p *PaymentTx) error {
 	if len(p.CreateTransaction.Metadata) != 66 {
 		return fmt.Errorf("invalid length metadata, got %v, wanted %v", len(p.CreateTransaction.Metadata), 66)
 	}
 	if len(p.CreateTransaction.Payments) >= MaxOutputs {
-		return fmt.Errorf("error too many payments, max outputs are %v, got %v", MaxOutputs, len( p.CreateTransaction.Payments ))
+		return fmt.Errorf("error too many payments, max outputs are %v, got %v", MaxOutputs, len(p.CreateTransaction.Payments))
 	}
 	if len(p.CreateTransaction.Payments) == 0 {
 		return errors.New("no payment specified")
@@ -131,7 +129,7 @@ func (p *PaymentTx) BuildTransaction() error {
 		return err
 	}
 	if len(p.CreateTransaction.Payments) == 0 {
-		return errors.New("not enough arguement to build transaction")
+		return errors.New("not enough argument to build transaction")
 	}
 	rstring, err := p.Client.do(
 		"/transaction.create",
@@ -148,7 +146,7 @@ func (p *PaymentTx) BuildTransaction() error {
 
 	if response.Success == false {
 		return fmt.Errorf(
-			"Error creating transaction. \n Code: %v \n Description: %v \n Object: %v \n" ,
+			"Error creating transaction. \n Code: %v \n Description: %v \n Object: %v \n",
 			response.Data.Code,
 			response.Data.Description,
 			response.Data.Object,

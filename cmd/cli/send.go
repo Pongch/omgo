@@ -59,6 +59,6 @@ func _send() error {
 	if err != nil {
 		return fmt.Errorf("unexpected error : %v", err)
 	}
-	DisplaySubmitResponse(res)
+	displaySubmitResponse(res)
 	return nil
 }

@@ -26,7 +26,7 @@ import (
 	"time"
 )
 
-type TestEnv struct {
+type testEnv struct {
 	Watcher, Privatekey, PaymentAmount, DepositAmount, Publickey, EthClient, Erc20Vault, EthVault, ExitGame, PlasmaFramework, Erc20token string
 	UtxoPos, ExitToProcess, BlockTime, BlockConfirmation                                                                                 int
 }
@@ -45,7 +45,7 @@ func loadTestEnv() (*TestEnv, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error loading .env file in test: %v", err)
 	}
-	env := TestEnv{
+	env := testEnv{
 		Watcher:           os.Getenv("WATCHER"),
 		Privatekey:        os.Getenv("PRIVKEY"),
 		Publickey:         os.Getenv("PUBKEY"),
@@ -91,7 +91,6 @@ func checkReceipt(receipt string, t *testing.T) bool {
 	}
 	if tx.Status == 0 {
 		return false
-	} else {
-		return true
 	}
+	return true
 }

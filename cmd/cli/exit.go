@@ -36,9 +36,12 @@ var (
 func _exit() error {
 	env, err := getCliEnv()
 	if err != nil {
-		return fmt.Errorf("error fetching environment variables:", err)
+		return fmt.Errorf("error fetching environment variables: %v", err)
 	}
 	client, err := ethclient.Dial(env.rcclient)
+	if err != nil {
+		fmt.Errorf("error dialing ethclient: %v", err)
+	}
 	rc := rootchain.NewClient(client)
 	ste := rc.NewStandardExit(common.HexToAddress(env.econtract))
 	c := &bind.CallOpts{}
@@ -64,7 +67,7 @@ func _exit() error {
 	}
 
 	if err := ste.Utxo(ed); err != nil {
-		return fmt.Errorf("error setting data for childchain transaction")
+		return fmt.Errorf("error setting data for childchain transaction: %v", err)
 	}
 	if err := rootchain.Options(ste, txopts); err != nil {
 		return fmt.Errorf("transaction options invalid, %v", err)

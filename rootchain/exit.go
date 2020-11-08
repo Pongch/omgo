@@ -40,11 +40,11 @@ type StandardExitTransaction struct {
 	*bind.TransactOpts
 	bind.ContractBackend
 	ExitGameAddress common.Address
-	ExitBinder ExitBinder
-	Proof []byte
-	TxBytes []byte
-	UtxoPos *big.Int
-	UtxoData StandardExitUTXOData
+	ExitBinder      ExitBinder
+	Proof           []byte
+	TxBytes         []byte
+	UtxoPos         *big.Int
+	UtxoData        StandardExitUTXOData
 }
 
 // StandardExitUTXOData is a returned data from calling /utxo.get_exit_data from the watcher, the data is required to start a standard exit on the utxo
@@ -57,7 +57,6 @@ type StandardExitUTXOData struct {
 		Proof   string   `json:"proof"`
 	} `json:"data"`
 }
-
 
 // GetUTXOExitData is a helper function to retrieve the UTXO exit data from a given UTXO position
 func GetUTXOExitData(watcher string, utxoPosition int) (StandardExitUTXOData, error) {
@@ -95,18 +94,19 @@ func GetUTXOExitData(watcher string, utxoPosition int) (StandardExitUTXOData, er
 
 	return response, nil
 }
+
 // NewStandardExit is a method on the root chain client that creates new standard payment exit
 func (c *Client) NewStandardExit(vaultAddress common.Address) *StandardExitTransaction {
 	return &StandardExitTransaction{
 		ContractBackend: c.ContractBackend,
 		ExitGameAddress: vaultAddress,
-		ExitBinder: abi.NewPaymentExitgame,
+		ExitBinder:      abi.NewPaymentExitgame,
 	}
 }
 
 // GetStandardExitBond is a method on StandardExitTransaction that gets standard exit bond
-func (c *StandardExitTransaction) GetStandardExitBond(opts *bind.CallOpts) (*big.Int, error) {
-	instance, err := c.ExitBinder(c.ExitGameAddress, c.ContractBackend)
+func (s *StandardExitTransaction) GetStandardExitBond(opts *bind.CallOpts) (*big.Int, error) {
+	instance, err := s.ExitBinder(s.ExitGameAddress, s.ContractBackend)
 	if err != nil {
 		return nil, err
 	}
@@ -153,8 +153,8 @@ func (s *StandardExitTransaction) Submit() (*types.Transaction, error) {
 	}
 
 	seargs := abi.PaymentStandardExitRouterArgsStartStandardExitArgs{
-		UtxoPos: s.UtxoPos,
-		RlpOutputTx: s.TxBytes,
+		UtxoPos:                s.UtxoPos,
+		RlpOutputTx:            s.TxBytes,
 		OutputTxInclusionProof: s.Proof,
 	}
 

@@ -81,6 +81,9 @@ func TestGetStandardExitBond(t *testing.T) {
 		t.Errorf("error loading test env in get exit bond test: %v", err)
 	}
 	client, err := ethclient.Dial(env.EthClient)
+	if err != nil {
+		t.Errorf("error dialing ethclient: %v", err)
+	}
 	rc := rootchain.NewClient(client)
 	ste := rc.NewStandardExit(common.HexToAddress(env.ExitGame))
 	c := &bind.CallOpts{}
@@ -98,6 +101,9 @@ func TestStartStandardExit(t *testing.T) {
 	}
 	// get standard exit bond
 	client, err := ethclient.Dial(env.EthClient)
+	if err != nil {
+		t.Errorf("error dialing ethclient: %v", err)
+	}
 	rc := rootchain.NewClient(client)
 	ste := rc.NewStandardExit(common.HexToAddress(env.ExitGame))
 	c := &bind.CallOpts{}
@@ -162,7 +168,10 @@ func TestProcessExit(t *testing.T) {
 		t.Errorf("error loading test env in standard exit test: %v", err)
 	}
 
-	client, _ := ethclient.Dial(env.EthClient)
+	client, err := ethclient.Dial(env.EthClient)
+	if err != nil {
+		t.Errorf("error dialing ethclient: %v", err)
+	}
 	rc := rootchain.NewClient(client)
 	vaultID := "1"
 	numberOfExits := "2"
@@ -208,7 +217,11 @@ func TestErc20Approval(t *testing.T) {
 	if err != nil {
 		t.Errorf("error loading test env in standard exit test: %v", err)
 	}
-	client, _ := ethclient.Dial(env.EthClient)
+	client, err := ethclient.Dial(env.EthClient)
+	if err != nil {
+		t.Errorf("error dialing ethclient: %v", err)
+	}
+
 	rc := rootchain.NewClient(client)
 	privateKey, err := crypto.HexToECDSA(util.FilterZeroX(env.Privatekey))
 	if err != nil {

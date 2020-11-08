@@ -21,10 +21,10 @@ import (
 	"github.com/pongch/omgo/abi"
 )
 
-// RootChainTransaction is an interface for a write operations on the root chain contract
+// RootchainTransaction is an interface for a write operations on the root chain contract
 type RootchainTransaction interface {
 	Submit() (*types.Transaction, error)
-	Build() (error)
+	Build() error
 	Options(*bind.TransactOpts) error
 }
 
@@ -37,19 +37,18 @@ type Client struct {
 // TODO: make binder return struct a more generic reusable contract
 type PlasmaFrameworkBinder func(common.Address, bind.ContractBackend) (*abi.PlasmaFramework, error)
 
-
 // NewClient initializes new root chain client
-func NewClient(ethclient bind.ContractBackend) *Client{
+func NewClient(ethclient bind.ContractBackend) *Client {
 	return &Client{ethclient}
 }
 
 // Options is a wrapper function that takes any transaction that satisfies RootchainTransaction interface and dispatch Opt on it
-func Options(rtx  RootchainTransaction, t *bind.TransactOpts) error {
+func Options(rtx RootchainTransaction, t *bind.TransactOpts) error {
 	return rtx.Options(t)
 }
 
 // Submit is a wrapper function that takes any transaction that satisfies RootchainTransaction interface and dispatch Submit on it
-func Submit(rtx RootchainTransaction) ( *types.Transaction, error ) {
+func Submit(rtx RootchainTransaction) (*types.Transaction, error) {
 	return rtx.Submit()
 }
 
@@ -57,10 +56,3 @@ func Submit(rtx RootchainTransaction) ( *types.Transaction, error ) {
 func Build(rtx RootchainTransaction) error {
 	return rtx.Build()
 }
-
-
-
-
-
-
-

@@ -19,6 +19,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
+// ParseArgs parse the arguement to the commandline from stdin
 func ParseArgs() {
 	switch kingpin.Parse() {
 	case getUtxo.FullCommand():

@@ -37,7 +37,7 @@ var (
 func _approve() error {
 	env, err := getCliEnv()
 	if err != nil {
-		return fmt.Errorf("error fetching environment variables:", err)
+		return fmt.Errorf("error fetching environment variables: %v", err)
 	}
 	client, err := ethclient.Dial(env.rcclient)
 	if err != nil {
