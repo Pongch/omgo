@@ -58,13 +58,24 @@ Connectivity to Ethereum via a local RPC node or Infura is required.
 
 Note: ERC20 tokens are not currently supported.
 
-## Setup
+## Download Binary
+
+`omgo` is available as binaries at https://github.com/pongch/omgo/releases. Download the binary that matches your operating system.
+
+After downloading the latest binary file (on macOS):
+1. rename the file `$ mv "name_of_your_binary_file" omgo`
+2. set execute permissions `$ chmod u+x ./omgo`
+3. run it `$ ./omgo --help` make sure your security settings allow you to run a downloaded executable file
+
+## Build from source
 
 Currently, the CLI must be built from source:
 
 1. Run `go install` on root of the repository 
 2. cd into `/cmd`
 3. run `go build`
+
+## Configuration
 
 the CLI will read from the following environment variables
 
@@ -77,6 +88,18 @@ OMGO_V2CONTRACT // plasma vault ID=2 (ERC20 Vault) contract
 OMGO_ECONTRACT // plasma exit game contract
 OMGO_PKEY // private key of the wallet/account to transact from
 
+```
+
+example env:
+
+```
+export OMGO_CCCLIENT="https://watcher-info.ropsten.v1.omg.network"
+export OMGO_RCCLIENT="https://ropsten.infura.io/v3/e2d2eee81e774cd3a4915d994dfec840"
+export OMGO_FWCONTRACT="0x96d5d8bc539694e5fa1ec0dab0e6327ca9e680f9"
+export OMGO_VCONTRACT="0x895cc6f20d386f5c0deae08b08ccfec9f821e7d9"
+export OMGO_V2CONTRACT="0x18e15c2cdc003b845b056f8d6b6a91ab33d3f182"
+export OMGO_ECONTRACT="0x08c569c5774110eb84a80b292e6d6f039e18915a"
+export OMGO_PKEY="CD5994C7E2BF03202C59B529B76E5582266CEB384F02D32B470AC57112D0C6E7"
 ```
 
 ## Create a keypair
