@@ -56,8 +56,6 @@ This project is licensed under the Apache 2.0 License - see the [LICENSE.md](LIC
 The OMGO CLI is used to interact with an OMG Network from the command line. Technical details about Ethereum and Plasma are abstracted from the user.
 Connectivity to Ethereum via a local RPC node or Infura is required.
 
-Note: ERC20 tokens are not currently supported.
-
 ## Download Binary
 
 `omgo` is available as binaries at https://github.com/pongch/omgo/releases. Download the binary that matches your operating system.
