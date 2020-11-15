@@ -18,3 +18,4 @@ plasma-cli
 
 #env variables
 *.env
+dist
